@@ -6,6 +6,20 @@ import joblib
 import pandas as pd
 import os
 import requests
+import sys
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+try:
+    from app.auth import get_current_user, render_auth_page, logout_user
+    from app.vision_tracker import render_vision_tracker_page
+    from app.daily_space import render_daily_space_page
+except (ImportError, ModuleNotFoundError):
+    from auth import get_current_user, render_auth_page, logout_user
+    from vision_tracker import render_vision_tracker_page
+    from daily_space import render_daily_space_page
 
 # ===== PAGE CONFIG — must be FIRST Streamlit call =====
 st.set_page_config(
@@ -606,405 +620,483 @@ with st.sidebar:
             Powered by OpenRouter
         </div>
     </div>
-    <hr style="border-top:1px solid rgba(165,180,252,0.1);margin:1rem 0">
+    <hr style="border-top:1px solid rgba(165,180,252,0.1);margin:0.8rem 0">
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="section-header">🤖 AI Model</div>', unsafe_allow_html=True)
-
-    selected_idx = st.selectbox(
-        "Choose Free Model",
-        range(len(model_display_names)),
-        format_func=lambda i: model_display_names[i],
-        key="model_selector"
-    )
-    selected_model = model_ids[selected_idx]
-
-    st.markdown(f"""
-    <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);
-                border-radius:10px;padding:0.8rem;margin:0.8rem 0;font-size:0.75rem;color:rgba(165,180,252,0.6)">
-        <b style="color:#22d3ee">Free tier</b> — No cost, no rate limit warnings.<br>
-        Model: <code style="color:#a78bfa;font-size:0.7rem">{selected_model}</code>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<hr style="border-top:1px solid rgba(165,180,252,0.1)">', unsafe_allow_html=True)
-    st.markdown('<div class="section-header">💬 Quick Chat</div>', unsafe_allow_html=True)
-
-    user_question = st.text_input(
-        "Ask a nutrition question",
-        placeholder="e.g. What foods boost metabolism?",
-        key="quick_chat_input"
-    )
-
-    if user_question:
-        with st.spinner("Thinking..."):
-            try:
-                qr = client.chat.completions.create(
-                    model=selected_model,
-                    messages=[
-                        {"role": "system", "content": "You are a concise, expert nutritionist. Answer briefly and practically."},
-                        {"role": "user", "content": user_question}
-                    ],
-                    max_tokens=400,
-                    temperature=0.6
-                )
-                st.markdown(f"""
-                <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
-                            border-radius:12px;padding:1rem;margin-top:0.5rem;font-size:0.85rem;
-                            color:#cbd5f0;line-height:1.6">
-                    {qr.choices[0].message.content}
+    # User Account Card
+    current_user = get_current_user()
+    if current_user:
+        st.markdown(f"""
+        <div style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.25);
+                    border-radius:12px;padding:10px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#22d3ee,#a855f7);
+                        display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:0.9rem">
+                {current_user.get('name', 'U')[:1].upper()}
+            </div>
+            <div style="overflow:hidden;flex-grow:1">
+                <div style="font-weight:600;color:#e2eeff;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    {current_user.get('name', 'User')}
                 </div>
-                """, unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"❌ {e}")
-
-    st.markdown('<hr style="border-top:1px solid rgba(165,180,252,0.1)">', unsafe_allow_html=True)
-    st.markdown('<div class="section-header">📄 Health Data</div>', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Upload health report (optional)", type=["csv", "pdf"])
-    if uploaded_file:
-        st.success(f"✅ Uploaded: {uploaded_file.name}")
-
-
-# ===== 8. HERO HEADER =====
-st.markdown("""
-<div style="padding:2rem 0 1.5rem">
-    <div class="hero-badge">✨ AI-Powered Nutrition Intelligence</div>
-    <div class="hero-title">Your Personal AI Nutritionist</div>
-    <div class="hero-subtitle">
-        Scientifically-optimized meal plans tailored to your biology — powered by cutting-edge free AI models.
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ─── Feature cards row ───
-col1, col2, col3, col4 = st.columns(4)
-feature_cards = [
-    ("🧬", "Personalized", "Based on your unique biology"),
-    ("🤖", "AI-Powered",   "Latest free OpenRouter models"),
-    ("🥘", "Indian Meals", "Budget-friendly local ingredients"),
-    ("📊", "Macro-tracked", "Calories, protein, carbs & fat"),
-]
-for col, (icon, title, desc) in zip([col1, col2, col3, col4], feature_cards):
-    with col:
-        st.markdown(f"""
-        <div class="metric-card" style="padding:1.2rem;margin-bottom:1rem">
-            <span class="metric-icon">{icon}</span>
-            <div style="font-family:Outfit,sans-serif;font-size:0.95rem;font-weight:600;
-                        color:#a5b4fc;margin-bottom:4px">{title}</div>
-            <div style="font-size:0.75rem;color:rgba(165,180,252,0.55)">{desc}</div>
+                <div style="font-size:0.7rem;color:#34d399">🟢 {current_user.get('auth_provider', 'Google')} Synced</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🚪 Sign Out", key="sidebar_signout_btn", use_container_width=True):
+            logout_user()
+            st.rerun()
+    else:
+        st.markdown("""
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+                    border-radius:10px;padding:8px 10px;margin-bottom:12px;text-align:center">
+            <span style="font-size:0.75rem;color:rgba(165,180,252,0.7)">Guest Mode • Sign in to save meals</span>
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown('<div class="section-header">🧭 Navigation</div>', unsafe_allow_html=True)
+    nav_options = [
+        "🥗 AI Meal Planner",
+        "📸 Live Calorie Tracker",
+        "📅 My Daily Space",
+        "👤 Sign In / Google"
+    ]
+    if "nav_selection" not in st.session_state:
+        st.session_state["nav_selection"] = "🥗 AI Meal Planner"
 
-# ===== 9. HEALTH PROFILE =====
-st.markdown('<div class="section-header" style="margin-top:1rem">🧑‍⚕️ Your Health Profile</div>', unsafe_allow_html=True)
-st.markdown('<div class="glass-card pulse-glow">', unsafe_allow_html=True)
+    default_idx = nav_options.index(st.session_state["nav_selection"]) if st.session_state["nav_selection"] in nav_options else 0
+    selected_nav = st.radio("Go to", nav_options, index=default_idx, label_visibility="collapsed", key="sidebar_nav_radio")
+    st.session_state["nav_selection"] = selected_nav
 
-with st.expander("", expanded=True):
-    r1c1, r1c2, r1c3 = st.columns(3)
-    with r1c1:
-        gender = st.selectbox("⚧ Gender", ["Male", "Female", "Other"], key="gender")
-    with r1c2:
-        age = st.number_input("🎂 Age", 5, 100, 25, key="age")
-    with r1c3:
-        goal = st.selectbox("🎯 Goal", ["Weight Loss", "Weight Gain", "Weight Maintenance"], key="goal")
+    st.markdown('<hr style="border-top:1px solid rgba(165,180,252,0.1);margin:1rem 0">', unsafe_allow_html=True)
 
-    r2c1, r2c2 = st.columns(2)
-    with r2c1:
-        height_unit = st.radio("Height Unit", ["cm", "m", "ft"], index=0, horizontal=True, key="h_unit")
-        height = st.number_input(f"📏 Height ({height_unit})", min_value=0.0, value=170.0, key="height")
-    with r2c2:
-        weight_unit = st.radio("Weight Unit", ["kg", "lbs"], index=0, horizontal=True, key="w_unit")
-        weight = st.number_input(f"⚖️ Weight ({weight_unit})", min_value=0.0, value=70.0, key="weight")
+    if selected_nav == "🥗 AI Meal Planner":
+        st.markdown('<div class="section-header">🤖 AI Model</div>', unsafe_allow_html=True)
 
-    activity = st.select_slider(
-        "🏃 Activity Level",
-        options=["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extremely Active"],
-        value="Moderately Active",
-        key="activity"
-    )
+        selected_idx = st.selectbox(
+            "Choose Free Model",
+            range(len(model_display_names)),
+            format_func=lambda i: model_display_names[i],
+            key="model_selector"
+        )
+        selected_model = model_ids[selected_idx]
 
-    dietary = st.multiselect(
-        "🌿 Dietary Preferences (optional)",
-        ["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Low-Carb", "High-Protein", "Diabetic-Friendly"],
-        key="dietary"
-    )
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-
-# ===== 10. LIVE BMI & METRIC CARDS =====
-height_m = height / 100 if height_unit == "cm" else (height * 0.3048 if height_unit == "ft" else height)
-weight_kg = weight * 0.453592 if weight_unit == "lbs" else weight
-bmi = round(weight_kg / (height_m ** 2), 2) if height_m > 0 else 0
-
-# BMI category
-if bmi < 18.5:
-    bmi_cat, bmi_color = "Underweight", "#f59e0b"
-elif bmi < 25:
-    bmi_cat, bmi_color = "Normal", "#10b981"
-elif bmi < 30:
-    bmi_cat, bmi_color = "Overweight", "#f59e0b"
-else:
-    bmi_cat, bmi_color = "Obese", "#f43f5e"
-
-# Activity multipliers for estimated TDEE
-activity_factors = {
-    "Sedentary": 1.2, "Lightly Active": 1.375,
-    "Moderately Active": 1.55, "Very Active": 1.725, "Extremely Active": 1.9
-}
-# Harris-Benedict BMR
-if gender == "Male":
-    bmr = 88.36 + (13.4 * weight_kg) + (4.8 * height_m * 100) - (5.7 * age)
-else:
-    bmr = 447.6 + (9.2 * weight_kg) + (3.1 * height_m * 100) - (4.3 * age)
-
-tdee = round(bmr * activity_factors.get(activity, 1.55))
-
-m1, m2, m3, m4 = st.columns(4)
-metrics = [
-    (m1, "⚖️", f"{bmi}", f"BMI • {bmi_cat}"),
-    (m2, "🔥", f"{tdee}", "Est. Daily Calories"),
-    (m3, "📏", f"{height_m:.2f}m", "Height"),
-    (m4, "💪", f"{weight_kg:.1f}kg", "Weight"),
-]
-for col, icon, val, label in metrics:
-    with col:
         st.markdown(f"""
-        <div class="metric-card">
-            <span class="metric-icon">{icon}</span>
-            <div class="metric-value">{val}</div>
-            <div class="metric-label">{label}</div>
+        <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);
+                    border-radius:10px;padding:0.8rem;margin:0.8rem 0;font-size:0.75rem;color:rgba(165,180,252,0.6)">
+            <b style="color:#22d3ee">Free tier</b> — No cost, no rate limit warnings.<br>
+            Model: <code style="color:#a78bfa;font-size:0.7rem">{selected_model}</code>
         </div>
         """, unsafe_allow_html=True)
 
+        st.markdown('<hr style="border-top:1px solid rgba(165,180,252,0.1)">', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">💬 Quick Chat</div>', unsafe_allow_html=True)
 
-# ===== 11. GENERATE DIET PLAN BUTTON =====
-st.markdown("<br>", unsafe_allow_html=True)
+        user_question = st.text_input(
+            "Ask a nutrition question",
+            placeholder="e.g. What foods boost metabolism?",
+            key="quick_chat_input"
+        )
 
-if st.button("✨ Generate My Personalized Diet Plan", type="primary", key="generate_btn"):
-    with st.spinner("🧬 Analyzing your biological profile..."):
-        try:
-            # Get model features
-            try:
-                expected_features = ml_model.feature_names_in_
-            except AttributeError:
+        if user_question:
+            with st.spinner("Thinking..."):
                 try:
-                    expected_features = ml_model.get_booster().feature_names
+                    qr = client.chat.completions.create(
+                        model=selected_model,
+                        messages=[
+                            {"role": "system", "content": "You are a concise, expert nutritionist. Answer briefly and practically."},
+                            {"role": "user", "content": user_question}
+                        ],
+                        max_tokens=400,
+                        temperature=0.6
+                    )
+                    st.markdown(f"""
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+                                border-radius:12px;padding:1rem;margin-top:0.5rem;font-size:0.85rem;
+                                color:#cbd5f0;line-height:1.6">
+                        {qr.choices[0].message.content}
+                    </div>
+                    """, unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"❌ {e}")
+
+        st.markdown('<hr style="border-top:1px solid rgba(165,180,252,0.1)">', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">📄 Health Data</div>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Upload health report (optional)", type=["csv", "pdf"])
+        if uploaded_file:
+            st.success(f"✅ Uploaded: {uploaded_file.name}")
+    else:
+        selected_model = model_ids[0]
+
+def render_meal_planner_page(api_key, client, selected_model, ml_model):
+    # ===== 8. HERO HEADER =====
+    st.markdown("""
+    <div style="padding:2rem 0 1.5rem">
+        <div class="hero-badge">✨ AI-Powered Nutrition Intelligence</div>
+        <div class="hero-title">Your Personal AI Nutritionist</div>
+        <div class="hero-subtitle">
+            Scientifically-optimized meal plans tailored to your biology — powered by cutting-edge free AI models.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ─── Feature cards row ───
+    col1, col2, col3, col4 = st.columns(4)
+    feature_cards = [
+        ("🧬", "Personalized", "Based on your unique biology"),
+        ("🤖", "AI-Powered",   "Latest free OpenRouter models"),
+        ("🥘", "Indian Meals", "Budget-friendly local ingredients"),
+        ("📊", "Macro-tracked", "Calories, protein, carbs & fat"),
+    ]
+    for col, (icon, title, desc) in zip([col1, col2, col3, col4], feature_cards):
+        with col:
+            st.markdown(f"""
+            <div class="metric-card" style="padding:1.2rem;margin-bottom:1rem">
+                <span class="metric-icon">{icon}</span>
+                <div style="font-family:Outfit,sans-serif;font-size:0.95rem;font-weight:600;
+                            color:#a5b4fc;margin-bottom:4px">{title}</div>
+                <div style="font-size:0.75rem;color:rgba(165,180,252,0.55)">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+    # ===== 9. HEALTH PROFILE =====
+    st.markdown('<div class="section-header" style="margin-top:1rem">🧑‍⚕️ Your Health Profile</div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-card pulse-glow">', unsafe_allow_html=True)
+
+    with st.expander("", expanded=True):
+        r1c1, r1c2, r1c3 = st.columns(3)
+        with r1c1:
+            gender = st.selectbox("⚧ Gender", ["Male", "Female", "Other"], key="gender")
+        with r1c2:
+            age = st.number_input("🎂 Age", 5, 100, 25, key="age")
+        with r1c3:
+            goal = st.selectbox("🎯 Goal", ["Weight Loss", "Weight Gain", "Weight Maintenance"], key="goal")
+
+        r2c1, r2c2 = st.columns(2)
+        with r2c1:
+            height_unit = st.radio("Height Unit", ["cm", "m", "ft"], index=0, horizontal=True, key="h_unit")
+            height = st.number_input(f"📏 Height ({height_unit})", min_value=0.0, value=170.0, key="height")
+        with r2c2:
+            weight_unit = st.radio("Weight Unit", ["kg", "lbs"], index=0, horizontal=True, key="w_unit")
+            weight = st.number_input(f"⚖️ Weight ({weight_unit})", min_value=0.0, value=70.0, key="weight")
+
+        activity = st.select_slider(
+            "🏃 Activity Level",
+            options=["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extremely Active"],
+            value="Moderately Active",
+            key="activity"
+        )
+
+        dietary = st.multiselect(
+            "🌿 Dietary Preferences (optional)",
+            ["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Low-Carb", "High-Protein", "Diabetic-Friendly"],
+            key="dietary"
+        )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+    # ===== 10. LIVE BMI & METRIC CARDS =====
+    height_m = height / 100 if height_unit == "cm" else (height * 0.3048 if height_unit == "ft" else height)
+    weight_kg = weight * 0.453592 if weight_unit == "lbs" else weight
+    bmi = round(weight_kg / (height_m ** 2), 2) if height_m > 0 else 0
+
+    # BMI category
+    if bmi < 18.5:
+        bmi_cat, bmi_color = "Underweight", "#f59e0b"
+    elif bmi < 25:
+        bmi_cat, bmi_color = "Normal", "#10b981"
+    elif bmi < 30:
+        bmi_cat, bmi_color = "Overweight", "#f59e0b"
+    else:
+        bmi_cat, bmi_color = "Obese", "#f43f5e"
+
+    # Activity multipliers for estimated TDEE
+    activity_factors = {
+        "Sedentary": 1.2, "Lightly Active": 1.375,
+        "Moderately Active": 1.55, "Very Active": 1.725, "Extremely Active": 1.9
+    }
+    # Harris-Benedict BMR
+    if gender == "Male":
+        bmr = 88.36 + (13.4 * weight_kg) + (4.8 * height_m * 100) - (5.7 * age)
+    else:
+        bmr = 447.6 + (9.2 * weight_kg) + (3.1 * height_m * 100) - (4.3 * age)
+
+    tdee = round(bmr * activity_factors.get(activity, 1.55))
+
+    m1, m2, m3, m4 = st.columns(4)
+    metrics = [
+        (m1, "⚖️", f"{bmi}", f"BMI • {bmi_cat}"),
+        (m2, "🔥", f"{tdee}", "Est. Daily Calories"),
+        (m3, "📏", f"{height_m:.2f}m", "Height"),
+        (m4, "💪", f"{weight_kg:.1f}kg", "Weight"),
+    ]
+    for col, icon, val, label in metrics:
+        with col:
+            st.markdown(f"""
+            <div class="metric-card">
+                <span class="metric-icon">{icon}</span>
+                <div class="metric-value">{val}</div>
+                <div class="metric-label">{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+    # ===== 11. GENERATE DIET PLAN BUTTON =====
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if st.button("✨ Generate My Personalized Diet Plan", type="primary", key="generate_btn"):
+        with st.spinner("🧬 Analyzing your biological profile..."):
+            try:
+                # Get model features
+                try:
+                    expected_features = ml_model.feature_names_in_
                 except AttributeError:
-                    st.error("❌ Could not determine model's expected features")
+                    try:
+                        expected_features = ml_model.get_booster().feature_names
+                    except AttributeError:
+                        st.error("❌ Could not determine model's expected features")
+                        st.stop()
+
+                # Build input dict
+                input_dict = {
+                    'Age': age,
+                    'Height_cm': height_m * 100,
+                    'Weight_kg': weight_kg,
+                    'BMI': bmi,
+                    'Gender_Male':   1 if gender == "Male"   else 0,
+                    'Gender_Female': 1 if gender == "Female" else 0,
+                    'Gender_Other':  1 if gender == "Other"  else 0,
+                }
+                for feature in expected_features:
+                    if feature not in input_dict:
+                        input_dict[feature] = 0
+
+                input_df = pd.DataFrame([input_dict])[expected_features]
+                prediction = ml_model.predict(input_df)
+
+                if len(prediction[0]) != 4:
+                    st.error(f"❌ Unexpected prediction format. Got {len(prediction[0])} outputs, expected 4.")
                     st.stop()
 
-            # Build input dict
-            input_dict = {
-                'Age': age,
-                'Height_cm': height_m * 100,
-                'Weight_kg': weight_kg,
-                'BMI': bmi,
-                'Gender_Male':   1 if gender == "Male"   else 0,
-                'Gender_Female': 1 if gender == "Female" else 0,
-                'Gender_Other':  1 if gender == "Other"  else 0,
-            }
-            for feature in expected_features:
-                if feature not in input_dict:
-                    input_dict[feature] = 0
+                calories, protein, carbs, fat = prediction[0]
 
-            input_df = pd.DataFrame([input_dict])[expected_features]
-            prediction = ml_model.predict(input_df)
-
-            if len(prediction[0]) != 4:
-                st.error(f"❌ Unexpected prediction format. Got {len(prediction[0])} outputs, expected 4.")
-                st.stop()
-
-            calories, protein, carbs, fat = prediction[0]
-
-            # Show macro pills
-            st.markdown(f"""
-            <div style="margin:1.5rem 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-                <span style="color:rgba(165,180,252,0.6);font-size:0.85rem;font-weight:600">
-                    ML-Predicted Macros:
-                </span>
-                <span class="macro-pill">🔥 {calories:.0f} kcal</span>
-                <span class="macro-pill protein">💪 {protein:.0f}g Protein</span>
-                <span class="macro-pill carbs">🌾 {carbs:.0f}g Carbs</span>
-                <span class="macro-pill fat">🫧 {fat:.0f}g Fat</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-        except Exception as e:
-            st.error(f"⚠️ Nutrition calculation error: {e}")
-            # Fallback to TDEE-based estimates
-            calories = tdee
-            protein = round(weight_kg * 1.8)
-            fat = round(calories * 0.25 / 9)
-            carbs = round((calories - protein * 4 - fat * 9) / 4)
-            st.info(f"ℹ️ Using TDEE-based estimates: {calories:.0f} kcal | {protein}g P | {carbs}g C | {fat}g F")
-
-    dietary_note = f"Dietary preferences: {', '.join(dietary)}." if dietary else "No specific dietary restrictions."
-
-    with st.spinner("🍽️ Crafting your personalized Indian meal plan..."):
-        try:
-            response = client.chat.completions.create(
-                model=selected_model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert Indian nutritionist creating beautifully detailed meal plans.
-Format your response using clean Markdown with emoji section headers.
-Include for EACH meal:
-- Exact portion sizes in grams/ml
-- Key nutritional values
-- Simple preparation notes
-- Budget-friendly, easily available Indian ingredients
-Use this exact structure with these section headers:
-## 🌅 Breakfast
-## 🍎 Mid-Morning Snack  
-## ☀️ Lunch
-## 🫖 Evening Snack
-## 🌙 Dinner
-## 💧 Hydration & Tips"""
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""Create a detailed {goal.lower()} meal plan for:
-- Age: {age} | Gender: {gender} | BMI: {bmi} ({bmi_cat})
-- Activity: {activity}
-- Daily Targets: {calories:.0f} kcal | {protein:.0f}g protein | {carbs:.0f}g carbs | {fat:.0f}g fat
-- {dietary_note}
-
-Make it practical, delicious, and achievable for an Indian lifestyle."""
-                    }
-                ],
-                temperature=0.72,
-                max_tokens=3500
-            )
-
-            plan_text = response.choices[0].message.content
-
-            # ─── Results Display ───
-            st.markdown(f"""
-            <div class="result-wrapper">
-                <div class="result-title">🍽️ Your Personalized Diet Plan</div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.5rem">
-                    <span class="macro-pill">👤 {age}y {gender}</span>
-                    <span class="macro-pill">🎯 {goal}</span>
-                    <span class="macro-pill">🏃 {activity}</span>
-                    <span class="macro-pill">⚖️ BMI {bmi} — {bmi_cat}</span>
+                # Show macro pills
+                st.markdown(f"""
+                <div style="margin:1.5rem 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                    <span style="color:rgba(165,180,252,0.6);font-size:0.85rem;font-weight:600">
+                        ML-Predicted Macros:
+                    </span>
+                    <span class="macro-pill">🔥 {calories:.0f} kcal</span>
+                    <span class="macro-pill protein">💪 {protein:.0f}g Protein</span>
+                    <span class="macro-pill carbs">🌾 {carbs:.0f}g Carbs</span>
+                    <span class="macro-pill fat">🫧 {fat:.0f}g Fat</span>
                 </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-            # Split plan into meal sections and display as cards
-            sections = {
-                "🌅 Breakfast":           ("breakfast", "☀️ Breakfast"),
-                "🍎 Mid-Morning Snack":   ("snack1",    "🍎 Mid-Morning Snack"),
-                "☀️ Lunch":               ("lunch",     "🌞 Lunch"),
-                "🫖 Evening Snack":       ("snack2",    "🫖 Evening Snack"),
-                "🌙 Dinner":              ("dinner",    "🌙 Dinner"),
-                "💧 Hydration & Tips":    ("hydration", "💧 Hydration & Tips"),
-            }
+            except Exception as e:
+                st.error(f"⚠️ Nutrition calculation error: {e}")
+                # Fallback to TDEE-based estimates
+                calories = tdee
+                protein = round(weight_kg * 1.8)
+                fat = round(calories * 0.25 / 9)
+                carbs = round((calories - protein * 4 - fat * 9) / 4)
+                st.info(f"ℹ️ Using TDEE-based estimates: {calories:.0f} kcal | {protein}g P | {carbs}g C | {fat}g F")
 
-            import re
-            parts = re.split(r'\n(?=##\s)', plan_text)
+        dietary_note = f"Dietary preferences: {', '.join(dietary)}." if dietary else "No specific dietary restrictions."
 
-            if len(parts) > 1:
-                for part in parts:
-                    part = part.strip()
-                    if not part:
-                        continue
-                    # Find which card class to use
-                    card_class = "lunch"  # default
-                    for section_header, (css_class, _) in sections.items():
-                        if any(kw in part[:40] for kw in section_header.split()):
-                            card_class = css_class
-                            break
-                    st.markdown(f'<div class="meal-card {card_class}">', unsafe_allow_html=True)
-                    st.markdown(part)
-                    st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                # Fallback: render full plan in one card
-                st.markdown(plan_text)
+        with st.spinner("🍽️ Crafting your personalized Indian meal plan..."):
+            try:
+                response = client.chat.completions.create(
+                    model=selected_model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": """You are an expert Indian nutritionist creating beautifully detailed meal plans.
+    Format your response using clean Markdown with emoji section headers.
+    Include for EACH meal:
+    - Exact portion sizes in grams/ml
+    - Key nutritional values
+    - Simple preparation notes
+    - Budget-friendly, easily available Indian ingredients
+    Use this exact structure with these section headers:
+    ## 🌅 Breakfast
+    ## 🍎 Mid-Morning Snack  
+    ## ☀️ Lunch
+    ## 🫖 Evening Snack
+    ## 🌙 Dinner
+    ## 💧 Hydration & Tips"""
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""Create a detailed {goal.lower()} meal plan for:
+    - Age: {age} | Gender: {gender} | BMI: {bmi} ({bmi_cat})
+    - Activity: {activity}
+    - Daily Targets: {calories:.0f} kcal | {protein:.0f}g protein | {carbs:.0f}g carbs | {fat:.0f}g fat
+    - {dietary_note}
 
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # Download button
-            st.download_button(
-                label="⬇️ Download My Diet Plan",
-                data=f"AI Nutritionist Pro — Diet Plan\n{'='*50}\n\n{plan_text}",
-                file_name="my_diet_plan.txt",
-                mime="text/plain",
-                key="download_plan"
-            )
-            # ── Particle Burst Animation (replaces balloons) ──
-            st.markdown("""
-            <div id="particle-container" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden"></div>
-            <script>
-            (function() {
-                const container = document.getElementById('particle-container');
-                if (!container) return;
-                const colors = ['#22d3ee','#a78bfa','#34d399','#fbbf24','#fb7185','#60a5fa','#f472b6'];
-                const shapes = ['●','★','◆','▲','✦','⬟'];
-                const count = 80;
-                for (let i = 0; i < count; i++) {
-                    const p = document.createElement('div');
-                    const size = Math.random() * 14 + 6;
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    const shape = shapes[Math.floor(Math.random() * shapes.length)];
-                    const startX = 40 + Math.random() * 20;
-                    const angle = Math.random() * 360;
-                    const distance = 20 + Math.random() * 55;
-                    const duration = 1.2 + Math.random() * 1.8;
-                    const delay = Math.random() * 0.5;
-                    const endX = startX + Math.cos(angle * Math.PI/180) * distance;
-                    const endY = 30 + Math.sin(angle * Math.PI/180) * distance;
-                    p.innerHTML = shape;
-                    p.style.cssText = `
-                        position:fixed;
-                        font-size:${size}px;
-                        color:${color};
-                        left:${startX}vw;
-                        top:50vh;
-                        opacity:0;
-                        transform:translate(-50%,-50%) scale(0) rotate(0deg);
-                        text-shadow:0 0 10px ${color},0 0 20px ${color};
-                        animation:burst${i} ${duration}s ease-out ${delay}s forwards;
-                        pointer-events:none;
-                    `;
-                    const style = document.createElement('style');
-                    style.innerHTML = `
-                        @keyframes burst${i} {
-                            0%   { opacity:0; transform:translate(-50%,-50%) scale(0) rotate(0deg); left:${startX}vw; top:50vh; }
-                            20%  { opacity:1; transform:translate(-50%,-50%) scale(1.2) rotate(${angle}deg); }
-                            80%  { opacity:0.8; transform:translate(-50%,-50%) scale(0.9) rotate(${angle*2}deg); left:${endX}vw; top:${endY}vh; }
-                            100% { opacity:0; transform:translate(-50%,-50%) scale(0.3) rotate(${angle*3}deg); left:${endX+5}vw; top:${endY+20}vh; }
+    Make it practical, delicious, and achievable for an Indian lifestyle."""
                         }
-                    `;
-                    document.head.appendChild(style);
-                    container.appendChild(p);
+                    ],
+                    temperature=0.72,
+                    max_tokens=3500
+                )
+
+                plan_text = response.choices[0].message.content
+
+                # ─── Results Display ───
+                st.markdown(f"""
+                <div class="result-wrapper">
+                    <div class="result-title">🍽️ Your Personalized Diet Plan</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.5rem">
+                        <span class="macro-pill">👤 {age}y {gender}</span>
+                        <span class="macro-pill">🎯 {goal}</span>
+                        <span class="macro-pill">🏃 {activity}</span>
+                        <span class="macro-pill">⚖️ BMI {bmi} — {bmi_cat}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # Split plan into meal sections and display as cards
+                sections = {
+                    "🌅 Breakfast":           ("breakfast", "☀️ Breakfast"),
+                    "🍎 Mid-Morning Snack":   ("snack1",    "🍎 Mid-Morning Snack"),
+                    "☀️ Lunch":               ("lunch",     "🌞 Lunch"),
+                    "🫖 Evening Snack":       ("snack2",    "🫖 Evening Snack"),
+                    "🌙 Dinner":              ("dinner",    "🌙 Dinner"),
+                    "💧 Hydration & Tips":    ("hydration", "💧 Hydration & Tips"),
                 }
-                // Clean up after animation
-                setTimeout(() => { container.innerHTML = ''; }, 4000);
-            })();
-            </script>
-            """, unsafe_allow_html=True)
 
-        except Exception as e:
-            st.markdown(f"""
-            <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);
-                        border-radius:14px;padding:1.5rem;margin-top:1rem">
-                <div style="font-family:Outfit,sans-serif;font-size:1rem;font-weight:600;color:#fb7185;margin-bottom:0.5rem">
-                    🚨 Error generating meal plan
+                import re
+                parts = re.split(r'\n(?=##\s)', plan_text)
+
+                if len(parts) > 1:
+                    for part in parts:
+                        part = part.strip()
+                        if not part:
+                            continue
+                        # Find which card class to use
+                        card_class = "lunch"  # default
+                        for section_header, (css_class, _) in sections.items():
+                            if any(kw in part[:40] for kw in section_header.split()):
+                                card_class = css_class
+                                break
+                        st.markdown(f'<div class="meal-card {card_class}">', unsafe_allow_html=True)
+                        st.markdown(part)
+                        st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    # Fallback: render full plan in one card
+                    st.markdown(plan_text)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                # Download button
+                st.download_button(
+                    label="⬇️ Download My Diet Plan",
+                    data=f"AI Nutritionist Pro — Diet Plan\n{'='*50}\n\n{plan_text}",
+                    file_name="my_diet_plan.txt",
+                    mime="text/plain",
+                    key="download_plan"
+                )
+                # ── Particle Burst Animation (replaces balloons) ──
+                st.markdown("""
+                <div id="particle-container" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden"></div>
+                <script>
+                (function() {
+                    const container = document.getElementById('particle-container');
+                    if (!container) return;
+                    const colors = ['#22d3ee','#a78bfa','#34d399','#fbbf24','#fb7185','#60a5fa','#f472b6'];
+                    const shapes = ['●','★','◆','▲','✦','⬟'];
+                    const count = 80;
+                    for (let i = 0; i < count; i++) {
+                        const p = document.createElement('div');
+                        const size = Math.random() * 14 + 6;
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+                        const startX = 40 + Math.random() * 20;
+                        const angle = Math.random() * 360;
+                        const distance = 20 + Math.random() * 55;
+                        const duration = 1.2 + Math.random() * 1.8;
+                        const delay = Math.random() * 0.5;
+                        const endX = startX + Math.cos(angle * Math.PI/180) * distance;
+                        const endY = 30 + Math.sin(angle * Math.PI/180) * distance;
+                        p.innerHTML = shape;
+                        p.style.cssText = `
+                            position:fixed;
+                            font-size:${size}px;
+                            color:${color};
+                            left:${startX}vw;
+                            top:50vh;
+                            opacity:0;
+                            transform:translate(-50%,-50%) scale(0) rotate(0deg);
+                            text-shadow:0 0 10px ${color},0 0 20px ${color};
+                            animation:burst${i} ${duration}s ease-out ${delay}s forwards;
+                            pointer-events:none;
+                        `;
+                        const style = document.createElement('style');
+                        style.innerHTML = `
+                            @keyframes burst${i} {
+                                0%   { opacity:0; transform:translate(-50%,-50%) scale(0) rotate(0deg); left:${startX}vw; top:50vh; }
+                                20%  { opacity:1; transform:translate(-50%,-50%) scale(1.2) rotate(${angle}deg); }
+                                80%  { opacity:0.8; transform:translate(-50%,-50%) scale(0.9) rotate(${angle*2}deg); left:${endX}vw; top:${endY}vh; }
+                                100% { opacity:0; transform:translate(-50%,-50%) scale(0.3) rotate(${angle*3}deg); left:${endX+5}vw; top:${endY+20}vh; }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                        container.appendChild(p);
+                    }
+                    // Clean up after animation
+                    setTimeout(() => { container.innerHTML = ''; }, 4000);
+                })();
+                </script>
+                """, unsafe_allow_html=True)
+
+            except Exception as e:
+                st.markdown(f"""
+                <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);
+                            border-radius:14px;padding:1.5rem;margin-top:1rem">
+                    <div style="font-family:Outfit,sans-serif;font-size:1rem;font-weight:600;color:#fb7185;margin-bottom:0.5rem">
+                        🚨 Error generating meal plan
+                    </div>
+                    <div style="color:rgba(203,213,240,0.7);font-size:0.85rem">
+                        {str(e)}<br><br>
+                        <b>Try:</b><br>
+                        • Selecting a different model<br>
+                        • Checking your OpenRouter API key<br>
+                        • Verifying your OpenRouter account credits
+                    </div>
                 </div>
-                <div style="color:rgba(203,213,240,0.7);font-size:0.85rem">
-                    {str(e)}<br><br>
-                    <b>Try:</b><br>
-                    • Selecting a different model<br>
-                    • Checking your OpenRouter API key<br>
-                    • Verifying your OpenRouter account credits
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
 
+
+# ===== 8. TOP NAVIGATION BAR =====
+top_col1, top_col2, top_col3, top_col4 = st.columns(4)
+nav_bar_items = [
+    ("🥗 AI Meal Planner", top_col1),
+    ("📸 Live Calorie Tracker", top_col2),
+    ("📅 My Daily Space", top_col3),
+    ("👤 Sign In / Google", top_col4)
+]
+for title, col in nav_bar_items:
+    with col:
+        is_active = (st.session_state.get("nav_selection", "🥗 AI Meal Planner") == title)
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(title, type=btn_type, use_container_width=True, key=f"top_tab_{title}"):
+            st.session_state["nav_selection"] = title
+            st.rerun()
+
+st.markdown("<div style='margin-bottom:1.5rem'></div>", unsafe_allow_html=True)
+
+# ===== 9. PAGE ROUTING DISPATCH =====
+active_nav = st.session_state.get("nav_selection", "🥗 AI Meal Planner")
+
+if active_nav == "📸 Live Calorie Tracker":
+    render_vision_tracker_page(api_key)
+elif active_nav == "📅 My Daily Space":
+    render_daily_space_page()
+elif active_nav == "👤 Sign In / Google":
+    render_auth_page()
+else:
+    render_meal_planner_page(api_key, client, selected_model, ml_model)
 # ===== 12. FOOTER =====
 st.markdown("""
 <div style="margin-top:4rem;padding:2rem 0;text-align:center;
