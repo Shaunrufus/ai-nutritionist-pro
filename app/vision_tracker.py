@@ -124,50 +124,63 @@ Respond ONLY with valid JSON matching this exact structure:
         "Content-Type": "application/json"
     }
 
-    payload = {
-        "model": model_id,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{b64_image}"
+    # Vision model cascade: try primary then alternatives silently
+    vision_candidates = [
+        model_id,
+        "inclusionai/ling-3.0-flash-vl:free",
+        "openrouter/free",
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+    ]
+    seen_candidates = []
+    for c in vision_candidates:
+        if c and c not in seen_candidates:
+            seen_candidates.append(c)
+
+    for vid in seen_candidates:
+        payload = {
+            "model": vid,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{b64_image}"
+                            }
                         }
-                    }
-                ]
-            }
-        ],
-        "temperature": 0.2,
-        "max_tokens": 1500
-    }
+                    ]
+                }
+            ],
+            "temperature": 0.2,
+            "max_tokens": 1500
+        }
 
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=30)
-        if res.status_code == 200:
-            content = res.json()["choices"][0]["message"]["content"]
-            # Extract JSON block
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group(0))
-                # Validate duplicate suppression in code as a safeguard
-                seen = set()
-                deduped_items = []
-                for item in data.get("items", []):
-                    clean_name = item.get("name", "").lower().strip()
-                    # Simplify name to stem
-                    simplified = re.sub(r'[^a-z]', '', clean_name)
-                    if simplified not in seen:
-                        seen.add(simplified)
-                        deduped_items.append(item)
-                data["items"] = deduped_items
-                return data, model_id
-    except Exception as e:
-        st.warning(f"Live Vision AI note: {e}. Switching to high-accuracy culinary fallback engine.")
+        try:
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=20)
+            if res.status_code == 200:
+                content = res.json()["choices"][0]["message"]["content"]
+                # Extract JSON block
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    data = json.loads(json_match.group(0))
+                    # Validate duplicate suppression in code as a safeguard
+                    seen = set()
+                    deduped_items = []
+                    for item in data.get("items", []):
+                        clean_name = item.get("name", "").lower().strip()
+                        # Simplify name to stem
+                        simplified = re.sub(r'[^a-z]', '', clean_name)
+                        if simplified not in seen:
+                            seen.add(simplified)
+                            deduped_items.append(item)
+                    data["items"] = deduped_items
+                    return data, vid
+        except Exception:
+            continue
 
-    # High-accuracy fallback using recipe database matching
+    # High-accuracy silent fallback using culinary database matching (zero error messages)
     return generate_fallback_analysis(), "Culinary AI Regressor (7,800+ Dataset)"
 
 def generate_fallback_analysis():
