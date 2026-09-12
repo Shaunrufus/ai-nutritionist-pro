@@ -257,20 +257,132 @@ section[data-testid="stSidebar"] h1, h2, h3 {
     transform: translateY(0) !important;
 }
 
-/* ─── Inputs ───────────────────────────────────────────────── */
-.stTextInput > div > div > input,
-.stNumberInput > div > div > input,
-.stSelectbox > div > div {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    border-radius: 10px !important;
+/* ─── ALL INPUTS — force dark background with visible text ─── */
+
+/* Text inputs */
+.stTextInput > div > div > input {
+    background: rgba(10,15,40,0.85) !important;
+    border: 1px solid rgba(99,102,241,0.35) !important;
+    border-radius: 12px !important;
     color: #e2eeff !important;
     font-family: 'Inter', sans-serif !important;
+    caret-color: #22d3ee !important;
 }
-.stTextInput > div > div > input:focus,
-.stNumberInput > div > div > input:focus {
-    border-color: rgba(6,182,212,0.5) !important;
+.stTextInput > div > div > input::placeholder { color: rgba(165,180,252,0.35) !important; }
+.stTextInput > div > div > input:focus {
+    border-color: rgba(6,182,212,0.6) !important;
+    box-shadow: 0 0 0 3px rgba(6,182,212,0.12) !important;
+    background: rgba(6,182,212,0.05) !important;
+}
+
+/* Number inputs — entire container + input field */
+.stNumberInput > div {
+    background: rgba(10,15,40,0.85) !important;
+    border: 1px solid rgba(99,102,241,0.35) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+.stNumberInput > div > div > input {
+    background: transparent !important;
+    border: none !important;
+    color: #e2eeff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 1rem !important;
+}
+.stNumberInput > div:focus-within {
+    border-color: rgba(6,182,212,0.6) !important;
     box-shadow: 0 0 0 3px rgba(6,182,212,0.1) !important;
+}
+/* +/- buttons */
+.stNumberInput button {
+    background: rgba(6,182,212,0.12) !important;
+    color: #22d3ee !important;
+    border: none !important;
+    border-left: 1px solid rgba(99,102,241,0.2) !important;
+}
+.stNumberInput button:hover { background: rgba(6,182,212,0.25) !important; }
+
+/* Select / Dropdown */
+.stSelectbox > div > div,
+.stMultiSelect > div > div {
+    background: rgba(10,15,40,0.85) !important;
+    border: 1px solid rgba(99,102,241,0.35) !important;
+    border-radius: 12px !important;
+    color: #e2eeff !important;
+}
+.stSelectbox > div > div:focus-within,
+.stMultiSelect > div > div:focus-within {
+    border-color: rgba(6,182,212,0.6) !important;
+    box-shadow: 0 0 0 3px rgba(6,182,212,0.1) !important;
+}
+/* Dropdown text */
+.stSelectbox span, .stSelectbox p,
+.stMultiSelect span, .stMultiSelect p {
+    color: #e2eeff !important;
+}
+/* Dropdown menu popup */
+[data-baseweb="popover"], [data-baseweb="menu"] {
+    background: rgba(10,15,40,0.97) !important;
+    border: 1px solid rgba(6,182,212,0.25) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(20px) !important;
+}
+[data-baseweb="menu"] li {
+    color: #cbd5f0 !important;
+    background: transparent !important;
+}
+[data-baseweb="menu"] li:hover {
+    background: rgba(6,182,212,0.1) !important;
+    color: #22d3ee !important;
+}
+/* Selected tag in multiselect */
+[data-baseweb="tag"] {
+    background: rgba(6,182,212,0.15) !important;
+    border: 1px solid rgba(6,182,212,0.3) !important;
+    border-radius: 8px !important;
+    color: #22d3ee !important;
+}
+
+/* Select slider (Activity Level) */
+.stSlider > div > div > div {
+    background: rgba(6,182,212,0.2) !important;
+}
+.stSlider > div > div > div > div {
+    background: linear-gradient(90deg, #06b6d4, #7c3aed) !important;
+}
+.stSlider [data-testid="stThumbValue"] {
+    background: linear-gradient(135deg, #06b6d4, #7c3aed) !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 2px 10px !important;
+}
+/* Slider tick labels */
+.stSlider [data-testid="stTickBarMin"],
+.stSlider [data-testid="stTickBarMax"] {
+    color: rgba(165,180,252,0.5) !important;
+    font-size: 0.7rem !important;
+}
+
+/* Radio buttons */
+.stRadio [data-testid="stWidgetLabel"] { color: #a5b4fc !important; }
+.stRadio label span { color: #cbd5f0 !important; }
+.stRadio [data-baseweb="radio"] div:first-child {
+    background: transparent !important;
+    border-color: rgba(6,182,212,0.5) !important;
+}
+.stRadio [aria-checked="true"] div:first-child {
+    background: radial-gradient(circle, #06b6d4, #7c3aed) !important;
+    border-color: #06b6d4 !important;
+}
+
+/* All widget labels */
+[data-testid="stWidgetLabel"] p, .stLabel, label p {
+    color: #a5b4fc !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.4px !important;
 }
 
 /* ─── Expander ─────────────────────────────────────────────── */
@@ -822,7 +934,58 @@ Make it practical, delicious, and achievable for an Indian lifestyle."""
                 mime="text/plain",
                 key="download_plan"
             )
-            st.balloons()
+            # ── Particle Burst Animation (replaces balloons) ──
+            st.markdown("""
+            <div id="particle-container" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden"></div>
+            <script>
+            (function() {
+                const container = document.getElementById('particle-container');
+                if (!container) return;
+                const colors = ['#22d3ee','#a78bfa','#34d399','#fbbf24','#fb7185','#60a5fa','#f472b6'];
+                const shapes = ['●','★','◆','▲','✦','⬟'];
+                const count = 80;
+                for (let i = 0; i < count; i++) {
+                    const p = document.createElement('div');
+                    const size = Math.random() * 14 + 6;
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+                    const startX = 40 + Math.random() * 20;
+                    const angle = Math.random() * 360;
+                    const distance = 20 + Math.random() * 55;
+                    const duration = 1.2 + Math.random() * 1.8;
+                    const delay = Math.random() * 0.5;
+                    const endX = startX + Math.cos(angle * Math.PI/180) * distance;
+                    const endY = 30 + Math.sin(angle * Math.PI/180) * distance;
+                    p.innerHTML = shape;
+                    p.style.cssText = `
+                        position:fixed;
+                        font-size:${size}px;
+                        color:${color};
+                        left:${startX}vw;
+                        top:50vh;
+                        opacity:0;
+                        transform:translate(-50%,-50%) scale(0) rotate(0deg);
+                        text-shadow:0 0 10px ${color},0 0 20px ${color};
+                        animation:burst${i} ${duration}s ease-out ${delay}s forwards;
+                        pointer-events:none;
+                    `;
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        @keyframes burst${i} {
+                            0%   { opacity:0; transform:translate(-50%,-50%) scale(0) rotate(0deg); left:${startX}vw; top:50vh; }
+                            20%  { opacity:1; transform:translate(-50%,-50%) scale(1.2) rotate(${angle}deg); }
+                            80%  { opacity:0.8; transform:translate(-50%,-50%) scale(0.9) rotate(${angle*2}deg); left:${endX}vw; top:${endY}vh; }
+                            100% { opacity:0; transform:translate(-50%,-50%) scale(0.3) rotate(${angle*3}deg); left:${endX+5}vw; top:${endY+20}vh; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    container.appendChild(p);
+                }
+                // Clean up after animation
+                setTimeout(() => { container.innerHTML = ''; }, 4000);
+            })();
+            </script>
+            """, unsafe_allow_html=True)
 
         except Exception as e:
             st.markdown(f"""
