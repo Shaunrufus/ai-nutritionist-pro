@@ -516,10 +516,173 @@ hr {
 .macro-pill.carbs   { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25); color: #fbbf24; }
 .macro-pill.fat     { background: rgba(244,63,94,0.1);  border-color: rgba(244,63,94,0.25);  color: #fb7185; }
 
-/* Hide streamlit default footer/branding */
+/* ─── ALL BUTTONS — dark glassmorphism styling, NO WHITE BARS ─── */
+.stButton, .stButton > button,
+button[data-testid="baseButton-secondary"],
+button[data-testid="baseButton-primary"],
+button[kind="secondary"],
+button[kind="primary"] {
+    border-radius: 14px !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    padding: 0.65rem 1.25rem !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    transition: all 0.25s ease !important;
+}
+
+/* Secondary / Default Buttons (Inactive nav buttons & regular buttons) */
+.stButton > button,
+.stButton > button[kind="secondary"],
+.stButton > button[data-testid="baseButton-secondary"],
+button[kind="secondary"],
+button[data-testid="baseButton-secondary"] {
+    background: rgba(12, 22, 55, 0.9) !important;
+    background-color: rgba(12, 22, 55, 0.9) !important;
+    border: 1px solid rgba(99, 102, 241, 0.4) !important;
+    color: #e2eeff !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.stButton > button:hover,
+.stButton > button[kind="secondary"]:hover,
+.stButton > button[data-testid="baseButton-secondary"]:hover,
+button[kind="secondary"]:hover,
+button[data-testid="baseButton-secondary"]:hover {
+    background: rgba(6, 182, 212, 0.2) !important;
+    background-color: rgba(6, 182, 212, 0.2) !important;
+    border-color: #22d3ee !important;
+    color: #22d3ee !important;
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.45) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Primary Buttons (Active nav button & main action buttons) */
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"],
+button[kind="primary"],
+button[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%) !important;
+    background-color: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.5) !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+.stButton > button[data-testid="baseButton-primary"]:hover,
+button[kind="primary"]:hover,
+button[data-testid="baseButton-primary"]:hover {
+    background: linear-gradient(135deg, #22d3ee 0%, #a855f7 100%) !important;
+    box-shadow: 0 0 45px rgba(34, 211, 238, 0.75) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ─── TABS STYLING ─── */
+.stTabs [data-baseweb="tab-list"] {
+    background: rgba(10, 16, 40, 0.75) !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    border-radius: 14px !important;
+    padding: 6px !important;
+    gap: 8px !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: #cbd5e1 !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    border-radius: 10px !important;
+    padding: 8px 20px !important;
+    border: none !important;
+    background: transparent !important;
+    transition: all 0.2s ease !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: #22d3ee !important;
+    background: rgba(6, 182, 212, 0.1) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: rgba(6, 182, 212, 0.2) !important;
+    color: #22d3ee !important;
+    border-bottom: 2px solid #22d3ee !important;
+}
+
+.stTabs [data-baseweb="tab-highlight"] {
+    background-color: #22d3ee !important;
+}
+
+.stTabs [data-baseweb="tab-border"] {
+    display: none !important;
+}
+
+/* ─── STREAMLIT HEADER & SIDEBAR TOGGLE (CHEVRON ARROW) ─── */
 #MainMenu { visibility: hidden; }
-footer    { visibility: hidden; }
-header    { visibility: hidden; }
+footer { visibility: hidden; }
+
+/* Keep Streamlit header bar transparent so sidebar button is accessible */
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    color: #22d3ee !important;
+}
+
+/* Left sliding menu button (Chevron Arrow) — ALWAYS VISIBLE & GLOWING */
+[data-testid="stSidebarCollapsedControl"],
+button[aria-label="Open sidebar"],
+button[aria-label="Close sidebar"] {
+    visibility: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(10, 18, 48, 0.92) !important;
+    border: 1px solid rgba(6, 182, 212, 0.45) !important;
+    border-radius: 12px !important;
+    color: #22d3ee !important;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.35) !important;
+    width: 42px !important;
+    height: 42px !important;
+    position: fixed !important;
+    top: 0.8rem !important;
+    left: 0.8rem !important;
+    z-index: 1000001 !important;
+    cursor: pointer !important;
+    transition: all 0.25s ease !important;
+}
+
+[data-testid="stSidebarCollapsedControl"]:hover,
+button[aria-label="Open sidebar"]:hover {
+    background: rgba(6, 182, 212, 0.25) !important;
+    border-color: #22d3ee !important;
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.6) !important;
+    transform: scale(1.05) !important;
+}
+
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="stSidebarCollapsedControl"] path,
+button[aria-label="Open sidebar"] svg,
+button[aria-label="Close sidebar"] svg {
+    fill: #22d3ee !important;
+    stroke: #22d3ee !important;
+    color: #22d3ee !important;
+}
+
+/* Sidebar collapse button when inside open sidebar */
+button[data-testid="stSidebarCollapseButton"] {
+    color: #22d3ee !important;
+    background: rgba(6, 182, 212, 0.12) !important;
+    border: 1px solid rgba(6, 182, 212, 0.3) !important;
+    border-radius: 10px !important;
+    padding: 6px !important;
+}
+
+button[data-testid="stSidebarCollapseButton"] svg {
+    fill: #22d3ee !important;
+    stroke: #22d3ee !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -661,10 +824,22 @@ with st.sidebar:
     ]
     if "nav_selection" not in st.session_state:
         st.session_state["nav_selection"] = "🥗 AI Meal Planner"
+    if "sidebar_nav_radio" not in st.session_state:
+        st.session_state["sidebar_nav_radio"] = st.session_state["nav_selection"]
+
+    def _sync_sidebar_nav():
+        st.session_state["nav_selection"] = st.session_state["sidebar_nav_radio"]
 
     default_idx = nav_options.index(st.session_state["nav_selection"]) if st.session_state["nav_selection"] in nav_options else 0
-    selected_nav = st.radio("Go to", nav_options, index=default_idx, label_visibility="collapsed", key="sidebar_nav_radio")
-    st.session_state["nav_selection"] = selected_nav
+    selected_nav = st.radio(
+        "Go to",
+        nav_options,
+        index=default_idx,
+        label_visibility="collapsed",
+        key="sidebar_nav_radio",
+        on_change=_sync_sidebar_nav
+    )
+    selected_nav = st.session_state.get("nav_selection", selected_nav)
 
     st.markdown('<hr style="border-top:1px solid rgba(165,180,252,0.1);margin:1rem 0">', unsafe_allow_html=True)
 
@@ -1082,6 +1257,7 @@ for title, col in nav_bar_items:
         btn_type = "primary" if is_active else "secondary"
         if st.button(title, type=btn_type, use_container_width=True, key=f"top_tab_{title}"):
             st.session_state["nav_selection"] = title
+            st.session_state["sidebar_nav_radio"] = title
             st.rerun()
 
 st.markdown("<div style='margin-bottom:1.5rem'></div>", unsafe_allow_html=True)
