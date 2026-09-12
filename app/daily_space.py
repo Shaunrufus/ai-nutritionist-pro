@@ -98,6 +98,7 @@ def render_daily_space_page():
         with c2:
             if st.button("🚀 Go to Google Sign-In Page", type="primary", use_container_width=True):
                 st.session_state["nav_selection"] = "👤 Sign In / Google"
+                st.session_state["sidebar_nav_radio"] = "👤 Sign In / Google"
                 st.rerun()
         return
 
