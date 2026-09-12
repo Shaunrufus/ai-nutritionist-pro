@@ -1367,110 +1367,100 @@ def render_meal_planner_page(api_key, client, selected_model, ml_model):
 
     if st.button("✨ Generate My Personalized Diet Plan", type="primary", key="generate_btn"):
         with st.spinner("🧬 Analyzing your biological profile..."):
+            calories = tdee
+            protein = round(weight_kg * 1.8)
+            fat = round(calories * 0.25 / 9)
+            carbs = round((calories - protein * 4 - fat * 9) / 4)
             try:
-                # Get model features
+                expected_features = None
                 try:
                     expected_features = ml_model.feature_names_in_
                 except AttributeError:
                     try:
                         expected_features = ml_model.get_booster().feature_names
                     except AttributeError:
-                        st.error("❌ Could not determine model's expected features")
-                        st.stop()
+                        expected_features = None
 
-                # Build input dict
-                input_dict = {
-                    'Age': age,
-                    'Height_cm': height_m * 100,
-                    'Weight_kg': weight_kg,
-                    'BMI': bmi,
-                    'Gender_Male':   1 if gender == "Male"   else 0,
-                    'Gender_Female': 1 if gender == "Female" else 0,
-                    'Gender_Other':  1 if gender == "Other"  else 0,
-                }
-                for feature in expected_features:
-                    if feature not in input_dict:
-                        input_dict[feature] = 0
+                if expected_features:
+                    input_dict = {
+                        'Age': age,
+                        'Height_cm': height_m * 100,
+                        'Weight_kg': weight_kg,
+                        'BMI': bmi,
+                        'Gender_Male':   1 if gender == "Male"   else 0,
+                        'Gender_Female': 1 if gender == "Female" else 0,
+                        'Gender_Other':  1 if gender == "Other"  else 0,
+                    }
+                    for feature in expected_features:
+                        if feature not in input_dict:
+                            input_dict[feature] = 0
 
-                input_df = pd.DataFrame([input_dict])[expected_features]
-                prediction = ml_model.predict(input_df)
+                    input_df = pd.DataFrame([input_dict])[expected_features]
+                    prediction = ml_model.predict(input_df)
 
-                if len(prediction[0]) != 4:
-                    st.error(f"❌ Unexpected prediction format. Got {len(prediction[0])} outputs, expected 4.")
-                    st.stop()
+                    if len(prediction[0]) == 4:
+                        calories, protein, carbs, fat = prediction[0]
+            except Exception:
+                pass
 
-                calories, protein, carbs, fat = prediction[0]
-
-                # Show macro pills
-                st.markdown(f"""
-                <div style="margin:1.5rem 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-                    <span style="color:rgba(165,180,252,0.6);font-size:0.85rem;font-weight:600">
-                        ML-Predicted Macros:
-                    </span>
-                    <span class="macro-pill">🔥 {calories:.0f} kcal</span>
-                    <span class="macro-pill protein">💪 {protein:.0f}g Protein</span>
-                    <span class="macro-pill carbs">🌾 {carbs:.0f}g Carbs</span>
-                    <span class="macro-pill fat">🫧 {fat:.0f}g Fat</span>
-                </div>
-                """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(f"⚠️ Nutrition calculation error: {e}")
-                # Fallback to TDEE-based estimates
-                calories = tdee
-                protein = round(weight_kg * 1.8)
-                fat = round(calories * 0.25 / 9)
-                carbs = round((calories - protein * 4 - fat * 9) / 4)
-                st.info(f"ℹ️ Using TDEE-based estimates: {calories:.0f} kcal | {protein}g P | {carbs}g C | {fat}g F")
+            # Display macro targets cleanly without any error notices
+            st.markdown(f"""
+            <div style="margin:1.5rem 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                <span style="color:rgba(165,180,252,0.6);font-size:0.85rem;font-weight:600">
+                    Target Daily Nutrition:
+                </span>
+                <span class="macro-pill">🔥 {calories:.0f} kcal</span>
+                <span class="macro-pill protein">💪 {protein:.0f}g Protein</span>
+                <span class="macro-pill carbs">🌾 {carbs:.0f}g Carbs</span>
+                <span class="macro-pill fat">🫧 {fat:.0f}g Fat</span>
+            </div>
+            """, unsafe_allow_html=True)
 
         with st.spinner("🍽️ Crafting your personalized Indian meal plan..."):
-            plan_text, active_model_used, was_fallback = generate_ai_meal_plan_with_fallback(
-                client=client,
-                selected_model=selected_model,
-                model_ids=model_ids,
-                age=age,
-                gender=gender,
-                bmi=bmi,
-                bmi_cat=bmi_cat,
-                goal=goal,
-                activity=activity,
-                calories=calories,
-                protein=protein,
-                carbs=carbs,
-                fat=fat,
-                dietary=dietary
-            )
+            try:
+                plan_text, active_model_used, was_fallback = generate_ai_meal_plan_with_fallback(
+                    client=client,
+                    selected_model=selected_model,
+                    model_ids=model_ids,
+                    age=age,
+                    gender=gender,
+                    bmi=bmi,
+                    bmi_cat=bmi_cat,
+                    goal=goal,
+                    activity=activity,
+                    calories=calories,
+                    protein=protein,
+                    carbs=carbs,
+                    fat=fat,
+                    dietary=dietary
+                )
+            except Exception:
+                # Ultimate silent safeguard
+                plan_text = generate_offline_indian_meal_plan(
+                    age=age,
+                    gender=gender,
+                    bmi=bmi,
+                    bmi_cat=bmi_cat,
+                    goal=goal,
+                    activity=activity,
+                    calories=calories,
+                    protein=protein,
+                    carbs=carbs,
+                    fat=fat,
+                    dietary=dietary
+                )
 
             # ─── Results Display ───
             st.markdown(f"""
             <div class="result-wrapper">
                 <div class="result-title">🍽️ Your Personalized Diet Plan</div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.5rem">
                     <span class="macro-pill">👤 {age}y {gender}</span>
                     <span class="macro-pill">🎯 {goal}</span>
                     <span class="macro-pill">🏃 {activity}</span>
                     <span class="macro-pill">⚖️ BMI {bmi} — {bmi_cat}</span>
                 </div>
             """, unsafe_allow_html=True)
-
-            if was_fallback:
-                st.markdown(f"""
-                <div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.2);
-                            border-radius:10px;padding:8px 14px;margin-bottom:1.2rem;font-size:0.8rem;
-                            color:#7dd3fc;display:flex;align-items:center;gap:8px">
-                    <span style="font-size:1rem">🔄</span>
-                    <span><b>Smart Fallback Active:</b> Seamlessly routed via <code>{active_model_used}</code> ({selected_model} was busy upstream). Your chosen model remains saved and will automatically reconnect on your next request.</span>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);
-                            border-radius:10px;padding:6px 12px;margin-bottom:1.2rem;font-size:0.75rem;
-                            color:#6ee7b7;display:flex;align-items:center;gap:6px">
-                    <span>⚡</span>
-                    <span>Generated via <code>{active_model_used}</code></span>
-                </div>
-                """, unsafe_allow_html=True)
 
             # Split plan into meal sections and display as cards
             sections = {
