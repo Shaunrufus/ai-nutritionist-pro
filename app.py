@@ -127,15 +127,15 @@ def generate_diet_plan(gender, age, goal, height_unit, height, weight_unit, weig
         except Exception as e:
             ml_note = f"⚠️ ML model error ({e}) — using formula fallback."
 
-    # ── LLM Call ──
-    selected_model = MODEL_MAP.get(model_name, "google/gemma-4-31b-it:free")
-    try:
-        resp = client.chat.completions.create(
-            model=selected_model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": """You are an expert Indian nutritionist. Format each section with emoji headers exactly as:
+    # ── LLM Call with Silent Multi-Model Cascade ──
+    selected_model = MODEL_MAP.get(model_name, "nvidia/nemotron-3.5-lightning:free")
+    candidate_models = [selected_model]
+    for m in ["nvidia/nemotron-3.5-lightning:free", "nex-agi/nex-n2.5-mini:free", "nex-agi/nex-n2.5-pro:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"]:
+        if m not in candidate_models:
+            candidate_models.append(m)
+
+    plan = None
+    system_prompt = """You are an expert Indian nutritionist. Format each section with emoji headers exactly as:
 ## 🌅 Breakfast
 ## 🍎 Mid-Morning Snack
 ## ☀️ Lunch
@@ -143,22 +143,34 @@ def generate_diet_plan(gender, age, goal, height_unit, height, weight_unit, weig
 ## 🌙 Dinner
 ## 💧 Hydration & Tips
 Include exact portion sizes, key nutrients, and simple prep notes. Use budget-friendly Indian ingredients."""
-                },
-                {
-                    "role": "user",
-                    "content": f"""Create a detailed {goal.lower()} meal plan for:
+
+    user_prompt = f"""Create a detailed {goal.lower()} meal plan for:
 - Age: {age} | Gender: {gender} | BMI: {bmi} ({bmi_cat}) | Activity: {activity}
 - Daily Targets: {calories:.0f} kcal | {protein:.0f}g protein | {carbs:.0f}g carbs | {fat:.0f}g fat
 - {dietary_note}
 Make it practical and achievable for an Indian lifestyle."""
-                }
-            ],
-            temperature=0.72,
-            max_tokens=3500
-        )
-        plan = resp.choices[0].message.content
-    except Exception as e:
-        plan = f"❌ LLM error: {e}\n\nTry selecting a different model."
+
+    for candidate in candidate_models:
+        try:
+            resp = client.chat.completions.create(
+                model=candidate,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.72,
+                max_tokens=3500,
+                timeout=20
+            )
+            if resp and resp.choices and resp.choices[0].message and resp.choices[0].message.content:
+                plan = resp.choices[0].message.content
+                break
+        except Exception:
+            continue
+
+    if not plan:
+        from app.Streamlit_app import generate_offline_indian_meal_plan
+        plan = generate_offline_indian_meal_plan(age, gender, bmi, bmi_cat, goal, activity, calories, protein, carbs, fat, dietary)
 
     # ── Metrics HTML ──
     metrics_html = f"""
@@ -192,24 +204,28 @@ Make it practical and achievable for an Indian lifestyle."""
 
 
 def quick_chat(question, model_name):
-    if not api_key:
-        return "❌ API key not configured."
     if not question.strip():
         return ""
-    selected_model = MODEL_MAP.get(model_name, "google/gemma-4-31b-it:free")
-    try:
-        resp = client.chat.completions.create(
-            model=selected_model,
-            messages=[
-                {"role": "system", "content": "You are a concise expert nutritionist. Answer briefly and practically."},
-                {"role": "user", "content": question}
-            ],
-            max_tokens=400,
-            temperature=0.6
-        )
-        return resp.choices[0].message.content
-    except Exception as e:
-        return f"❌ Error: {e}"
+    from app.Streamlit_app import get_quick_nutrition_advice
+    selected_model = MODEL_MAP.get(model_name, "nvidia/nemotron-3.5-lightning:free")
+    candidates = [selected_model, "nvidia/nemotron-3.5-lightning:free", "nex-agi/nex-n2.5-mini:free"]
+    for c in candidates:
+        try:
+            resp = client.chat.completions.create(
+                model=c,
+                messages=[
+                    {"role": "system", "content": "You are a concise expert nutritionist. Answer briefly and practically with Indian dietary context."},
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=400,
+                temperature=0.6,
+                timeout=12
+            )
+            if resp and resp.choices and resp.choices[0].message and resp.choices[0].message.content:
+                return resp.choices[0].message.content
+        except Exception:
+            continue
+    return get_quick_nutrition_advice(question)
 
 
 # ===== 6. CUSTOM CSS =====
