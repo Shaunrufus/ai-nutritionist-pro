@@ -1,0 +1,42 @@
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment & Secrets — NEVER COMMIT THESE
+.env
+.env.*
+*.env
+!*.env.example
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# API Keys / credentials
+secrets.toml
+*_api_key*
+*apikey*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Models (optional - uncomment if too large for git)
+# models/*.pkl
+# models/*.joblib
