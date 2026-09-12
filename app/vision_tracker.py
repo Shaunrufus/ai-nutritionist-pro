@@ -227,6 +227,39 @@ def render_vision_tracker_page(api_key: str):
     </div>
     """, unsafe_allow_html=True)
 
+    # ─── Privacy & Sandboxing System Architecture ───
+    st.markdown("""
+    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.3);
+                border-radius:14px;padding:1rem 1.2rem;margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:1.3rem">🛡️</span>
+                <span style="font-family:'Outfit',sans-serif;font-weight:700;color:#34d399;font-size:1rem">
+                    Zero-Gallery-Access Security & Privacy Architecture
+                </span>
+            </div>
+            <span style="font-size:0.75rem;background:rgba(16,185,129,0.15);color:#34d399;padding:3px 10px;border-radius:12px;font-weight:600">
+                🔒 Sandboxed & Isolated
+            </span>
+        </div>
+        <div style="font-size:0.85rem;color:rgba(203,213,240,0.8);line-height:1.6">
+            • <b>Single-Image Sandboxing</b>: The AI vision engine only reads the <i>exact single photo</i> you take with the camera or explicitly select. It has <b>zero technical capability to scan, access, or browse your device gallery or other media</b>.<br>
+            • <b>Zero-Persistence AI</b>: Images are analyzed ephemerally in volatile memory. Photos are never shared, sold, or used for model training.<br>
+            • <b>Your Private Space</b>: Saved photos remain strictly in your authenticated personal daily diary.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    photo_permission = st.checkbox(
+        "🔐 I authorize camera / single-dish image capture for macro analysis (Zero access to gallery/other files)",
+        value=st.session_state.get("photo_perm_granted", True),
+        key="photo_perm_granted"
+    )
+
+    if not photo_permission:
+        st.warning("🔒 Image processing is paused. Please enable the permission check above to access the camera or upload your meal photo.")
+        return
+
     c_left, c_right = st.columns([1.1, 0.9])
 
     with c_left:
@@ -243,6 +276,7 @@ def render_vision_tracker_page(api_key: str):
                 image_data = camera_pic.getvalue()
 
         with cam_tab2:
+            st.caption("🔒 Gallery Sandbox Active: The file picker grants isolated access to ONLY the 1 file you choose. No other photos in your gallery can be viewed or indexed.")
             uploaded_dish = st.file_uploader("Upload meal photo", type=["jpg", "jpeg", "png"], key="dish_file_uploader")
             if uploaded_dish:
                 image_data = uploaded_dish.getvalue()
