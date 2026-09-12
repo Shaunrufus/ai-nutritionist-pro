@@ -289,33 +289,63 @@ section[data-testid="stSidebar"] h1, h2, h3 {
     background: rgba(6,182,212,0.05) !important;
 }
 
-/* Number inputs — entire container + input field */
+/* Number inputs — comprehensive dark override (ZERO white boxes) */
+[data-testid="stNumberInput"],
+[data-testid="stNumberInput"] div,
+[data-testid="stNumberInputContainer"],
+[data-testid="stNumberInputContainer"] div,
+[data-baseweb="input"],
+[data-baseweb="base-input"],
+.stNumberInput,
+.stNumberInput div {
+    background: rgba(10, 16, 44, 0.95) !important;
+    background-color: rgba(10, 16, 44, 0.95) !important;
+}
+
+[data-testid="stNumberInputContainer"],
 .stNumberInput > div {
-    background: rgba(10,15,40,0.85) !important;
-    border: 1px solid rgba(99,102,241,0.35) !important;
+    border: 1px solid rgba(99, 102, 241, 0.4) !important;
     border-radius: 12px !important;
     overflow: hidden !important;
 }
-.stNumberInput > div > div > input {
+
+[data-testid="stNumberInputContainer"]:focus-within,
+.stNumberInput > div:focus-within {
+    border-color: rgba(6, 182, 212, 0.7) !important;
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15) !important;
+}
+
+[data-testid="stNumberInput"] input,
+.stNumberInput input {
     background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
     color: #e2eeff !important;
     font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     font-size: 1rem !important;
 }
-.stNumberInput > div:focus-within {
-    border-color: rgba(6,182,212,0.6) !important;
-    box-shadow: 0 0 0 3px rgba(6,182,212,0.1) !important;
-}
+
 /* +/- buttons */
+[data-testid="stNumberInputStepDown"],
+[data-testid="stNumberInputStepUp"],
+[data-testid="stNumberInput"] button,
 .stNumberInput button {
-    background: rgba(6,182,212,0.12) !important;
+    background: rgba(6, 182, 212, 0.15) !important;
+    background-color: rgba(6, 182, 212, 0.15) !important;
     color: #22d3ee !important;
     border: none !important;
-    border-left: 1px solid rgba(99,102,241,0.2) !important;
+    border-left: 1px solid rgba(99, 102, 241, 0.25) !important;
 }
-.stNumberInput button:hover { background: rgba(6,182,212,0.25) !important; }
+
+[data-testid="stNumberInputStepDown"]:hover,
+[data-testid="stNumberInputStepUp"]:hover,
+[data-testid="stNumberInput"] button:hover,
+.stNumberInput button:hover {
+    background: rgba(6, 182, 212, 0.3) !important;
+    background-color: rgba(6, 182, 212, 0.3) !important;
+    color: #ffffff !important;
+}
 
 /* Select / Dropdown */
 .stSelectbox > div > div,
@@ -400,19 +430,32 @@ section[data-testid="stSidebar"] h1, h2, h3 {
 }
 
 /* ─── Expander ─────────────────────────────────────────────── */
+[data-testid="stExpander"],
+[data-testid="stExpander"] summary,
+details summary,
 .streamlit-expanderHeader {
-    background: rgba(255,255,255,0.03) !important;
-    border: 1px solid rgba(255,255,255,0.07) !important;
+    background: rgba(10, 16, 42, 0.9) !important;
+    background-color: rgba(10, 16, 42, 0.9) !important;
+    border: 1px solid rgba(99, 102, 241, 0.35) !important;
     border-radius: 14px !important;
-    color: #a5b4fc !important;
+    color: #e2eeff !important;
     font-family: 'Outfit', sans-serif !important;
     font-weight: 600 !important;
 }
+
+[data-testid="stExpander"] summary:hover {
+    color: #22d3ee !important;
+    border-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+[data-testid="stExpander"] [data-testid="stExpanderDetails"],
 .streamlit-expanderContent {
-    background: rgba(255,255,255,0.02) !important;
-    border: 1px solid rgba(255,255,255,0.05) !important;
+    background: rgba(8, 12, 30, 0.8) !important;
+    background-color: rgba(8, 12, 30, 0.8) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
     border-top: none !important;
     border-radius: 0 0 14px 14px !important;
+    color: #cbd5f0 !important;
 }
 
 /* ─── Divider ──────────────────────────────────────────────── */
@@ -452,17 +495,34 @@ hr {
     color: #cbd5f0 !important;
 }
 
-/* ─── File uploader ────────────────────────────────────────── */
-.stFileUploader {
-    background: rgba(255,255,255,0.02) !important;
-    border: 2px dashed rgba(6,182,212,0.2) !important;
+/* ─── File uploader — dark dropzone override ─── */
+[data-testid="stFileUploader"],
+[data-testid="stFileUploader"] section,
+[data-testid="stFileUploaderDropzone"],
+section[data-testid="stFileUploaderDropzone"],
+.stFileUploader,
+.stFileUploader section {
+    background: rgba(10, 16, 42, 0.9) !important;
+    background-color: rgba(10, 16, 42, 0.9) !important;
+    border: 2px dashed rgba(6, 182, 212, 0.4) !important;
     border-radius: 14px !important;
-    padding: 1rem !important;
-    transition: all 0.3s ease !important;
+    color: #cbd5f0 !important;
 }
-.stFileUploader:hover {
-    border-color: rgba(6,182,212,0.4) !important;
-    background: rgba(6,182,212,0.03) !important;
+
+[data-testid="stFileUploaderDropzoneInstructions"],
+[data-testid="stFileUploaderDropzoneInstructions"] span,
+[data-testid="stFileUploaderDropzoneInstructions"] small,
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] span {
+    color: rgba(165, 180, 252, 0.75) !important;
+}
+
+[data-testid="stFileUploader"] button {
+    background: rgba(6, 182, 212, 0.2) !important;
+    border: 1px solid rgba(6, 182, 212, 0.45) !important;
+    color: #22d3ee !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
 }
 
 /* ─── Scrollbar ────────────────────────────────────────────── */
@@ -937,35 +997,34 @@ def render_meal_planner_page(api_key, client, selected_model, ml_model):
     st.markdown('<div class="section-header" style="margin-top:1rem">🧑‍⚕️ Your Health Profile</div>', unsafe_allow_html=True)
     st.markdown('<div class="glass-card pulse-glow">', unsafe_allow_html=True)
 
-    with st.expander("", expanded=True):
-        r1c1, r1c2, r1c3 = st.columns(3)
-        with r1c1:
-            gender = st.selectbox("⚧ Gender", ["Male", "Female", "Other"], key="gender")
-        with r1c2:
-            age = st.number_input("🎂 Age", 5, 100, 25, key="age")
-        with r1c3:
-            goal = st.selectbox("🎯 Goal", ["Weight Loss", "Weight Gain", "Weight Maintenance"], key="goal")
+    r1c1, r1c2, r1c3 = st.columns(3)
+    with r1c1:
+        gender = st.selectbox("⚧ Gender", ["Male", "Female", "Other"], key="gender")
+    with r1c2:
+        age = st.number_input("🎂 Age", 5, 100, 25, key="age")
+    with r1c3:
+        goal = st.selectbox("🎯 Goal", ["Weight Loss", "Weight Gain", "Weight Maintenance"], key="goal")
 
-        r2c1, r2c2 = st.columns(2)
-        with r2c1:
-            height_unit = st.radio("Height Unit", ["cm", "m", "ft"], index=0, horizontal=True, key="h_unit")
-            height = st.number_input(f"📏 Height ({height_unit})", min_value=0.0, value=170.0, key="height")
-        with r2c2:
-            weight_unit = st.radio("Weight Unit", ["kg", "lbs"], index=0, horizontal=True, key="w_unit")
-            weight = st.number_input(f"⚖️ Weight ({weight_unit})", min_value=0.0, value=70.0, key="weight")
+    r2c1, r2c2 = st.columns(2)
+    with r2c1:
+        height_unit = st.radio("Height Unit", ["cm", "m", "ft"], index=0, horizontal=True, key="h_unit")
+        height = st.number_input(f"📏 Height ({height_unit})", min_value=0.0, value=170.0, key="height")
+    with r2c2:
+        weight_unit = st.radio("Weight Unit", ["kg", "lbs"], index=0, horizontal=True, key="w_unit")
+        weight = st.number_input(f"⚖️ Weight ({weight_unit})", min_value=0.0, value=70.0, key="weight")
 
-        activity = st.select_slider(
-            "🏃 Activity Level",
-            options=["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extremely Active"],
-            value="Moderately Active",
-            key="activity"
-        )
+    activity = st.select_slider(
+        "🏃 Activity Level",
+        options=["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extremely Active"],
+        value="Moderately Active",
+        key="activity"
+    )
 
-        dietary = st.multiselect(
-            "🌿 Dietary Preferences (optional)",
-            ["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Low-Carb", "High-Protein", "Diabetic-Friendly"],
-            key="dietary"
-        )
+    dietary = st.multiselect(
+        "🌿 Dietary Preferences (optional)",
+        ["Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Low-Carb", "High-Protein", "Diabetic-Friendly"],
+        key="dietary"
+    )
 
     st.markdown('</div>', unsafe_allow_html=True)
 
