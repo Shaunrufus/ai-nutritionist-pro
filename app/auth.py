@@ -145,17 +145,19 @@ def render_auth_page():
             </div>
             """, unsafe_allow_html=True)
 
-            google_name = st.text_input("Full Name", value="Shaun Rufus", key="g_name_input")
-            google_email = st.text_input("Google Email Address", value="shaunrufus14@gmail.com", key="g_email_input")
+            google_name = st.text_input("Full Name", placeholder="e.g. Alex Morgan", key="g_name_input")
+            google_email = st.text_input("Google Email Address", placeholder="e.g. alex.morgan@gmail.com", key="g_email_input")
 
             st.markdown(render_google_button_html("Continue with Google"), unsafe_allow_html=True)
             if st.button("✨ Complete Google Sign-In", type="primary", use_container_width=True, key="google_login_submit"):
-                if "@" not in google_email:
-                    st.error("Please enter a valid Google email.")
+                clean_email = google_email.strip()
+                if not clean_email or "@" not in clean_email:
+                    st.error("Please enter a valid Google email address.")
                 else:
+                    display_name = google_name.strip() if google_name.strip() else clean_email.split("@")[0].capitalize()
                     user_profile = {
-                        "name": google_name,
-                        "email": google_email.lower().strip(),
+                        "name": display_name,
+                        "email": clean_email.lower(),
                         "auth_provider": "Google",
                         "created_at": datetime.now().isoformat(),
                         "last_login": datetime.now().isoformat(),
@@ -165,7 +167,7 @@ def render_auth_page():
                         "target_fat": 65
                     }
                     login_user(user_profile)
-                    st.success(f"🎉 Welcome back, {google_name}! Logged in with Google.")
+                    st.success(f"🎉 Welcome, {display_name}! Logged in with Google.")
                     st.rerun()
 
         with auth_tab2:
