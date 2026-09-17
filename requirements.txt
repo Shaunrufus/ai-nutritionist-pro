@@ -1,0 +1,14 @@
+streamlit
+gradio==6.27.0
+xgboost
+pandas
+numpy
+scikit-learn
+python-dotenv
+matplotlib
+seaborn
+joblib
+shap
+openai>=1.0.0
+requests
+Pillow
