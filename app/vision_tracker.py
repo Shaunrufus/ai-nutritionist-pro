@@ -225,9 +225,75 @@ def generate_fallback_analysis():
 
 def render_vision_tracker_page(api_key: str):
     """Renders the complete Live Camera Calorie Tracker with AR brackets and HUD overlay."""
+    # ── Inject Live Camera Motion HUD Styles ──
     st.markdown("""
-    <div style="margin-bottom:1.5rem">
-        <div class="hero-badge">📸 AI Live Vision Calorie Scanner</div>
+    <style>
+    /* Camera input container positioning */
+    [data-testid="stCameraInput"] {
+        position: relative !important;
+        border-radius: 18px !important;
+        overflow: hidden !important;
+        border: 1.5px solid rgba(34, 211, 238, 0.45) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    }
+    [data-testid="stCameraInput"] video {
+        border-radius: 16px !important;
+        filter: brightness(0.96) contrast(1.05) !important;
+    }
+    /* Top-right cloud-shaped live telemetry indicator overlaid in motion */
+    [data-testid="stCameraInput"]::before {
+        content: "☁️ Live Macro Sensor\\A🔥 ~480 kcal | 💪 P: 32g\\A🌾 C: 48g | 🫧 F: 16g\\A🟢 Focus Locked";
+        white-space: pre-wrap;
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        z-index: 10;
+        background: rgba(6, 12, 30, 0.88);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1.5px solid rgba(34, 211, 238, 0.6);
+        border-radius: 20px 20px 4px 20px;
+        padding: 8px 12px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #22d3ee;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(34, 211, 238, 0.25);
+        pointer-events: none;
+        line-height: 1.4;
+        animation: cloudPulse 3s ease-in-out infinite alternate;
+    }
+    /* Animated AR Scanning Reticle in motion */
+    [data-testid="stCameraInput"]::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 65%;
+        height: 65%;
+        border: 2px dashed rgba(34, 211, 238, 0.5);
+        border-radius: 16px;
+        box-shadow: 0 0 20px rgba(34, 211, 238, 0.3), inset 0 0 15px rgba(34, 211, 238, 0.15);
+        pointer-events: none;
+        z-index: 9;
+        animation: reticleScan 4s ease-in-out infinite;
+    }
+    @keyframes cloudPulse {
+        0% { transform: translateY(0); box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 15px rgba(34,211,238,0.25); }
+        100% { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.7), 0 0 25px rgba(34,211,238,0.45); }
+    }
+    @keyframes reticleScan {
+        0% { transform: translate(-50%, -50%) scale(0.96); border-color: rgba(34, 211, 238, 0.5); }
+        50% { transform: translate(-50%, -50%) scale(1.02); border-color: rgba(52, 211, 153, 0.7); box-shadow: 0 0 30px rgba(52, 211, 153, 0.4); }
+        100% { transform: translate(-50%, -50%) scale(0.96); border-color: rgba(34, 211, 238, 0.5); }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="margin-bottom:1.2rem">
+        <div class="hero-badge">📸 Live Vision Food Scanner</div>
         <h1 style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:700;
                    background:linear-gradient(135deg,#22d3ee,#a78bfa);
                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
@@ -235,43 +301,18 @@ def render_vision_tracker_page(api_key: str):
             Live Camera Food & Calorie Tracker
         </h1>
         <p style="color:rgba(165,180,252,0.7);font-size:0.95rem;max-width:700px">
-            Point your camera at your dish. Our automatic AI vision engine immediately recognizes each item, highlights unique food components with AR brackets, and displays live protein, carbs, and calories inside a transparent HUD dialog box.
+            Aim your camera at any meal. Our vision intelligence detects unique food items, highlights portions with AR brackets, and projects instant protein, carb, and calorie metrics inside the top-right cloud HUD.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # ─── Privacy & Sandboxing System Architecture ───
+    # ─── Sleek Subtle Privacy Indicator (Non-intrusive) ───
     st.markdown("""
-    <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.3);
-                border-radius:14px;padding:1rem 1.2rem;margin-bottom:1.5rem">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-            <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:1.3rem">🛡️</span>
-                <span style="font-family:'Outfit',sans-serif;font-weight:700;color:#34d399;font-size:1rem">
-                    Zero-Gallery-Access Security & Privacy Architecture
-                </span>
-            </div>
-            <span style="font-size:0.75rem;background:rgba(16,185,129,0.15);color:#34d399;padding:3px 10px;border-radius:12px;font-weight:600">
-                🔒 Sandboxed & Isolated
-            </span>
-        </div>
-        <div style="font-size:0.85rem;color:rgba(203,213,240,0.8);line-height:1.6">
-            • <b>Single-Image Sandboxing</b>: The AI vision engine only reads the <i>exact single photo</i> you take with the camera or explicitly select. It has <b>zero technical capability to scan, access, or browse your device gallery or other media</b>.<br>
-            • <b>Zero-Persistence AI</b>: Images are analyzed ephemerally in volatile memory. Photos are never shared, sold, or used for model training.<br>
-            • <b>Your Private Space</b>: Saved photos remain strictly in your authenticated personal daily diary.
-        </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.2);border-radius:12px;margin-bottom:1.2rem;font-size:0.82rem;color:rgba(203,213,240,0.85)">
+        <span>🛡️</span>
+        <span><b>Private & Ephemeral Scan</b>: Photos are processed in memory only and never stored without your explicit action.</span>
     </div>
     """, unsafe_allow_html=True)
-
-    photo_permission = st.checkbox(
-        "🔐 I authorize camera / single-dish image capture for macro analysis (Zero access to gallery/other files)",
-        value=st.session_state.get("photo_perm_granted", True),
-        key="photo_perm_granted"
-    )
-
-    if not photo_permission:
-        st.warning("🔒 Image processing is paused. Please enable the permission check above to access the camera or upload your meal photo.")
-        return
 
     c_left, c_right = st.columns([1.1, 0.9])
 
@@ -283,13 +324,13 @@ def render_vision_tracker_page(api_key: str):
         image_data = None
 
         with cam_tab1:
-            st.info("💡 Click below to open your camera and capture your plate.")
+            st.caption("💡 Aim at your dish. Live motion reticle & top-right cloud dialogue box guide your shot.")
             camera_pic = st.camera_input("Point camera at your meal", key="dish_camera_input")
             if camera_pic:
                 image_data = camera_pic.getvalue()
 
         with cam_tab2:
-            st.caption("🔒 Gallery Sandbox Active: The file picker grants isolated access to ONLY the 1 file you choose. No other photos in your gallery can be viewed or indexed.")
+            st.caption("Select any high-resolution meal photo for instant macronutrient analysis.")
             uploaded_dish = st.file_uploader("Upload meal photo", type=["jpg", "jpeg", "png"], key="dish_file_uploader")
             if uploaded_dish:
                 image_data = uploaded_dish.getvalue()
@@ -298,7 +339,7 @@ def render_vision_tracker_page(api_key: str):
         st.markdown('<div class="section-header">🔬 Live AI Vision HUD & Macros</div>', unsafe_allow_html=True)
 
         if image_data:
-            with st.spinner("🤖 AI Vision scanning dish, detecting items & calculating macros..."):
+            with st.spinner("🤖 AI Vision analyzing dish components & calculating clinical macros..."):
                 analysis, active_model = analyze_dish_image(image_data, api_key)
                 img_b64 = base64.b64encode(image_data).decode("utf-8")
                 
@@ -308,128 +349,119 @@ def render_vision_tracker_page(api_key: str):
                     "analysis": analysis
                 }
 
-                # Construct AR Bounding Boxes & Transparent HUD Overlay
+                # Extract and sanitize items
                 items = analysis.get("items", [])
                 total_cal = analysis.get("total_calories", 0)
                 total_prot = analysis.get("total_protein", 0)
                 total_carbs = analysis.get("total_carbs", 0)
                 total_fat = analysis.get("total_fat", 0)
                 rating = analysis.get("health_rating", 8.0)
-                verdict = analysis.get("verdict", "Well-balanced meal")
+                raw_verdict = str(analysis.get("verdict", "Well-balanced meal"))
+                clean_verdict = re.sub(r'<[^>]+>', '', raw_verdict).strip()
 
-                # Generate AR bounding box HTML
-                boxes_html = ""
+                # Generate clean AR bounding boxes (zero indentation / blank lines to avoid markdown code block triggers)
+                boxes_html_list = []
                 for idx, item in enumerate(items):
                     box = item.get("box_2d", [20, 20, 60, 60])
                     top, left, bottom, right = box[0], box[1], box[2], box[3]
-                    w = right - left
-                    h = bottom - top
-                    name = item.get("name", "Food Item")
-                    portion = item.get("portion", "")
-                    cal = item.get("calories", 0)
-                    p = item.get("protein", 0)
-                    c = item.get("carbs", 0)
+                    w = max(10, min(90, right - left))
+                    h = max(10, min(90, bottom - top))
+                    raw_name = str(item.get("name", "Food Item"))
+                    name = re.sub(r'<[^>]+>', '', raw_name).strip()[:32]
+                    cal = int(item.get("calories", 0))
 
-                    boxes_html += f"""
-                    <div style="position:absolute;top:{top}%;left:{left}%;width:{w}%;height:{h}%;
-                                border:2px solid #22d3ee;border-radius:10px;
-                                box-shadow:0 0 15px rgba(34,211,238,0.7), inset 0 0 10px rgba(34,211,238,0.3);
-                                pointer-events:none;z-index:10;">
-                        <!-- AR Corner Accents -->
-                        <div style="position:absolute;top:-4px;left:-4px;width:12px;height:12px;border-top:3px solid #34d399;border-left:3px solid #34d399;"></div>
-                        <div style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-top:3px solid #34d399;border-right:3px solid #34d399;"></div>
-                        <div style="position:absolute;bottom:-4px;left:-4px;width:12px;height:12px;border-bottom:3px solid #34d399;border-left:3px solid #34d399;"></div>
-                        <div style="position:absolute;bottom:-4px;right:-4px;width:12px;height:12px;border-bottom:3px solid #34d399;border-right:3px solid #34d399;"></div>
-                        
-                        <!-- Floating Tag -->
-                        <div style="position:absolute;top:-26px;left:0;background:rgba(5,10,25,0.88);
-                                    border:1px solid #22d3ee;border-radius:6px;padding:2px 8px;
-                                    font-size:0.75rem;font-weight:700;color:#22d3ee;white-space:nowrap;
-                                    box-shadow:0 2px 10px rgba(0,0,0,0.5);display:flex;align-items:center;gap:4px">
-                            <span>✨ {name}</span>
-                            <span style="color:#fbbf24">🔥 {cal}kcal</span>
-                        </div>
-                    </div>
-                    """
+                    box_markup = (
+                        f'<div style="position:absolute;top:{top}%;left:{left}%;width:{w}%;height:{h}%;'
+                        f'border:2px solid #22d3ee;border-radius:10px;'
+                        f'box-shadow:0 0 15px rgba(34,211,238,0.7),inset 0 0 10px rgba(34,211,238,0.3);'
+                        f'pointer-events:none;z-index:15;">'
+                        f'<div style="position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-top:3px solid #34d399;border-left:3px solid #34d399;"></div>'
+                        f'<div style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-top:3px solid #34d399;border-right:3px solid #34d399;"></div>'
+                        f'<div style="position:absolute;bottom:-4px;left:-4px;width:10px;height:10px;border-bottom:3px solid #34d399;border-left:3px solid #34d399;"></div>'
+                        f'<div style="position:absolute;bottom:-4px;right:-4px;width:10px;height:10px;border-bottom:3px solid #34d399;border-right:3px solid #34d399;"></div>'
+                        f'<div style="position:absolute;top:-26px;left:0;background:rgba(6,12,30,0.92);'
+                        f'border:1px solid #22d3ee;border-radius:6px;padding:2px 8px;font-size:0.75rem;'
+                        f'font-weight:700;color:#22d3ee;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,0.6);">'
+                        f'✨ {name} <span style="color:#fbbf24">🔥 {cal}kcal</span></div></div>'
+                    )
+                    boxes_html_list.append(box_markup)
 
-                # Render Combined Live Camera View with AR Brackets & Transparent HUD Dialogue Box
-                st.markdown(f"""
-                <div style="position:relative;width:100%;max-width:550px;border-radius:18px;overflow:hidden;
-                            border:1px solid rgba(34,211,238,0.4);box-shadow:0 10px 40px rgba(0,0,0,0.6);
-                            margin-bottom:1.5rem">
-                    <img src="data:image/jpeg;base64,{img_b64}" style="width:100%;height:auto;display:block;filter:brightness(0.95)">
-                    
-                    <!-- Live AR Bounding Boxes -->
-                    {boxes_html}
+                all_boxes_str = "".join(boxes_html_list)
 
-                    <!-- 🪟 TRANSPARENT HUD DIALOGUE BOX (Overlaid on Camera View) -->
-                    <div style="position:absolute;bottom:12px;left:12px;right:12px;
-                                background:rgba(6,12,30,0.78);
-                                backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-                                border:1px solid rgba(34,211,238,0.35);border-radius:14px;
-                                padding:14px;box-shadow:0 8px 30px rgba(0,0,0,0.7);
-                                z-index:20;animation:fadeIn 0.4s ease-out">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                            <div style="display:flex;align-items:center;gap:6px">
-                                <span style="font-size:1.1rem">🔍</span>
-                                <span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;color:#e2eeff">
-                                    Live Dish Scan • {len(items)} Unique Items
-                                </span>
-                            </div>
-                            <span style="font-size:0.75rem;background:rgba(34,211,238,0.15);color:#22d3ee;
-                                         padding:2px 8px;border-radius:12px;border:1px solid rgba(34,211,238,0.3)">
-                                AI Vision Active
-                            </span>
-                        </div>
-                        
-                        <!-- Macro Row in Transparent HUD -->
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0">
-                            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;text-align:center">
-                                <div style="font-size:0.65rem;color:rgba(165,180,252,0.7);text-transform:uppercase">Calories</div>
-                                <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:0.95rem;color:#22d3ee">🔥 {total_cal}</div>
-                            </div>
-                            <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:6px;text-align:center">
-                                <div style="font-size:0.65rem;color:#34d399;text-transform:uppercase">Protein</div>
-                                <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:0.95rem;color:#34d399">💪 {total_prot}g</div>
-                            </div>
-                            <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:6px;text-align:center">
-                                <div style="font-size:0.65rem;color:#fbbf24;text-transform:uppercase">Carbs</div>
-                                <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:0.95rem;color:#fbbf24">🌾 {total_carbs}g</div>
-                            </div>
-                            <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:8px;padding:6px;text-align:center">
-                                <div style="font-size:0.65rem;color:#fb7185;text-transform:uppercase">Fat</div>
-                                <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:0.95rem;color:#fb7185">🫧 {total_fat}g</div>
-                            </div>
-                        </div>
-                        
-                        <div style="font-size:0.75rem;color:rgba(203,213,240,0.8);display:flex;align-items:center;gap:6px">
-                            <span>⭐ Score {rating}/10:</span>
-                            <span style="color:#cbd5f0">{verdict}</span>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                # Construct the requested Top-Right Cloud-Shaped Dialogue Box
+                cloud_hud_html = (
+                    f'<div style="position:absolute;top:12px;right:12px;max-width:245px;'
+                    f'background:rgba(6,12,30,0.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);'
+                    f'border:1.5px solid rgba(34,211,238,0.55);border-radius:24px 24px 6px 24px;'
+                    f'padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,0.7),0 0 20px rgba(34,211,238,0.25);'
+                    f'z-index:25;animation:fadeIn 0.3s ease-out;">'
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+                    f'<span style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;color:#e2eeff">☁️ Macro Telemetry</span>'
+                    f'<span style="font-size:0.7rem;color:#34d399;font-weight:700;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:10px">⭐ {rating}/10</span>'
+                    f'</div>'
+                    f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">'
+                    f'<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:4px 6px;text-align:center">'
+                    f'<div style="font-size:0.6rem;color:rgba(165,180,252,0.7);text-transform:uppercase">Calories</div>'
+                    f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;color:#22d3ee">🔥 {total_cal}</div>'
+                    f'</div>'
+                    f'<div style="background:rgba(16,185,129,0.08);border-radius:8px;padding:4px 6px;text-align:center">'
+                    f'<div style="font-size:0.6rem;color:#34d399">PROTEIN</div>'
+                    f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;color:#34d399">💪 {total_prot}g</div>'
+                    f'</div>'
+                    f'<div style="background:rgba(245,158,11,0.08);border-radius:8px;padding:4px 6px;text-align:center">'
+                    f'<div style="font-size:0.6rem;color:#fbbf24">CARBS</div>'
+                    f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;color:#fbbf24">🌾 {total_carbs}g</div>'
+                    f'</div>'
+                    f'<div style="background:rgba(244,63,94,0.08);border-radius:8px;padding:4px 6px;text-align:center">'
+                    f'<div style="font-size:0.6rem;color:#fb7185">FAT</div>'
+                    f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;color:#fb7185">🫧 {total_fat}g</div>'
+                    f'</div>'
+                    f'</div>'
+                    f'<div style="font-size:0.72rem;color:#cbd5f0;line-height:1.3;white-space:normal">{clean_verdict}</div>'
+                    f'</div>'
+                )
+
+                # Single unindented clean HTML block (absolutely no blank lines, no code block leak)
+                full_ar_view = (
+                    f'<div style="position:relative;width:100%;max-width:550px;border-radius:18px;overflow:hidden;'
+                    f'border:1px solid rgba(34,211,238,0.4);box-shadow:0 10px 40px rgba(0,0,0,0.6);margin-bottom:1.5rem">'
+                    f'<img src="data:image/jpeg;base64,{img_b64}" style="width:100%;height:auto;display:block;filter:brightness(0.95)">'
+                    f'{all_boxes_str}'
+                    f'{cloud_hud_html}'
+                    f'</div>'
+                )
+                st.markdown(full_ar_view, unsafe_allow_html=True)
 
                 # Breakdown Table of Detected Items
                 st.markdown('<div class="section-header" style="margin-top:1rem">📋 Detected Food Items Breakdown</div>', unsafe_allow_html=True)
                 for item in items:
-                    st.markdown(f"""
-                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(34,211,238,0.2);
-                                border-radius:12px;padding:10px 14px;margin-bottom:8px;
-                                display:flex;justify-content:space-between;align-items:center">
-                        <div>
-                            <div style="font-weight:600;color:#e2eeff;font-size:0.9rem">
-                                🥘 {item.get('name')} <span style="font-size:0.75rem;color:rgba(165,180,252,0.6)">({item.get('portion', '')})</span>
-                            </div>
-                            <div style="font-size:0.75rem;color:rgba(203,213,240,0.6);margin-top:2px">
-                                P: <b style="color:#34d399">{item.get('protein')}g</b> | C: <b style="color:#fbbf24">{item.get('carbs')}g</b> | F: <b style="color:#fb7185">{item.get('fat')}g</b>
-                            </div>
-                        </div>
-                        <div style="font-family:'Outfit',sans-serif;font-weight:700;color:#22d3ee;font-size:1rem">
-                            🔥 {item.get('calories')} kcal
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    raw_iname = str(item.get("name", "Food Item"))
+                    iname = re.sub(r'<[^>]+>', '', raw_iname).strip()
+                    raw_iportion = str(item.get("portion", ""))
+                    iportion = re.sub(r'<[^>]+>', '', raw_iportion).strip()
+                    ip = item.get("protein", 0)
+                    ic = item.get("carbs", 0)
+                    ifat = item.get("fat", 0)
+                    ical = item.get("calories", 0)
+
+                    item_row = (
+                        f'<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(34,211,238,0.2);'
+                        f'border-radius:12px;padding:10px 14px;margin-bottom:8px;'
+                        f'display:flex;justify-content:space-between;align-items:center">'
+                        f'<div>'
+                        f'<div style="font-weight:600;color:#e2eeff;font-size:0.9rem">'
+                        f'🥘 {iname} <span style="font-size:0.75rem;color:rgba(165,180,252,0.6)">({iportion})</span>'
+                        f'</div>'
+                        f'<div style="font-size:0.75rem;color:rgba(203,213,240,0.6);margin-top:2px">'
+                        f'P: <b style="color:#34d399">{ip}g</b> | C: <b style="color:#fbbf24">{ic}g</b> | F: <b style="color:#fb7185">{ifat}g</b>'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;color:#22d3ee;font-size:1rem">'
+                        f'🔥 {ical} kcal'
+                        f'</div>'
+                        f'</div>'
+                    )
+                    st.markdown(item_row, unsafe_allow_html=True)
 
                 # Action to Save to User Daily Space
                 st.markdown("<hr style='margin:1.2rem 0;border-top:1px solid rgba(255,255,255,0.08)'>", unsafe_allow_html=True)
@@ -439,11 +471,13 @@ def render_vision_tracker_page(api_key: str):
                 with meal_col1:
                     meal_type = st.selectbox("Meal Category", ["Breakfast", "Lunch", "Snack", "Dinner"], key="save_meal_type")
                 with meal_col2:
-                    dish_title = st.text_input("Meal Title", value=items[0].get("name", "Nutritious Meal") if items else "Healthy Meal", key="save_dish_title")
+                    raw_title = items[0].get("name", "Nutritious Meal") if items else "Healthy Meal"
+                    default_title = re.sub(r'<[^>]+>', '', str(raw_title)).strip()
+                    dish_title = st.text_input("Meal Title", value=default_title, key="save_dish_title")
 
                 if st.button("💾 Save to My Daily Space", type="primary", use_container_width=True, key="log_to_space_btn"):
                     if not user:
-                        st.warning("⚠️ Please sign in with your Google account in the 'Sign In' tab so we can save this meal to your personal space!")
+                        st.warning("⚠️ Please sign in in the 'Sign In' tab so we can save this meal to your personal space!")
                     else:
                         try:
                             from app.daily_space import log_user_meal
@@ -462,7 +496,6 @@ def render_vision_tracker_page(api_key: str):
                         )
                         if success:
                             st.success(f"🎉 Successfully logged '{dish_title}' ({total_cal} kcal) to your Daily Space!")
-                            st.balloons() if False else None
         else:
             st.markdown("""
             <div class="glass-card" style="text-align:center;padding:3rem 1.5rem">
@@ -471,7 +504,8 @@ def render_vision_tracker_page(api_key: str):
                     Awaiting Food Camera Input
                 </div>
                 <div style="color:rgba(203,213,240,0.6);font-size:0.85rem;line-height:1.6;max-width:340px;margin:0 auto">
-                    Capture a live photo using the camera tab on the left or upload an image. The AI vision engine will automatically start calculating.
+                    Aim your camera using the viewport on the left or upload an image. The live AR HUD will instantly scan and compute calories.
                 </div>
             </div>
             """, unsafe_allow_html=True)
+

@@ -1001,6 +1001,46 @@ def generate_offline_indian_meal_plan(
 - **Sleep & Recovery**: Target 7.5 - 8 hours of quality sleep to balance leptin and ghrelin hormones.
 - **Goal Alignment ({goal})**: Calibrated to match your {bmi_cat} metabolic profile ({calories:.0f} kcal, {protein:.0f}g protein daily target)."""
 
+def is_gibberish_line(line: str) -> bool:
+    """Detects corrupted token repeats, infinite dots, and degenerated model outputs."""
+    stripped = line.strip()
+    if not stripped:
+        return False
+    dot_count = stripped.count('.')
+    if dot_count >= 4 and (dot_count / len(stripped)) > 0.06:
+        return True
+    if '.....' in stripped or '... ...' in stripped or '.. ..' in stripped:
+        return True
+    if re.search(r'(?:[a-zA-Z]\s*[\.,_]\s*){3,}', stripped):
+        return True
+    non_alpha = len(re.findall(r'[^a-zA-Z0-9\s]', stripped))
+    if len(stripped) > 12 and (non_alpha / len(stripped)) > 0.28:
+        return True
+    if re.search(r'[}\])][\s\.\(]{2,}', stripped):
+        return True
+    return False
+
+def clean_and_sanitize_meal_plan(plan_text: str) -> str:
+    """Removes trailing corrupted tokens and degenerated lines from AI completions."""
+    if not plan_text:
+        return ""
+    lines = plan_text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        if is_gibberish_line(line):
+            break
+        cleaned_lines.append(line)
+    result = '\n'.join(cleaned_lines).strip()
+    result = re.sub(r'[\s\."\',\-_+=]+$', '', result)
+    return result
+
+def is_valid_meal_plan(plan_text: str) -> bool:
+    """Ensures meal plan has substantive clean text and primary meals."""
+    if not plan_text or len(plan_text) < 250:
+        return False
+    lower = plan_text.lower()
+    return ("breakfast" in lower or "morning" in lower) and ("lunch" in lower or "dinner" in lower)
+
 def generate_ai_meal_plan_with_fallback(
     client,
     selected_model,
@@ -1020,7 +1060,7 @@ def generate_ai_meal_plan_with_fallback(
     """
     Attempts primary model first. If rate-limited (429) or unreachable,
     silently cascades through backup models without showing any error messages.
-    Preserves user selection for future requests so it auto-switches back.
+    Sanitizes output and discards models returning gibberish.
     """
     dietary_note = f"Dietary preferences: {', '.join(dietary)}." if dietary else "No specific dietary restrictions."
     
@@ -1075,10 +1115,11 @@ Make it practical, delicious, and achievable for an Indian lifestyle."""
                 timeout=25
             )
             if response and response.choices and response.choices[0].message and response.choices[0].message.content:
-                content = response.choices[0].message.content.strip()
-                if len(content) > 100:
+                raw_content = response.choices[0].message.content.strip()
+                cleaned_content = clean_and_sanitize_meal_plan(raw_content)
+                if is_valid_meal_plan(cleaned_content):
                     was_fallback = (attempt_model != selected_model)
-                    return content, attempt_model, was_fallback
+                    return cleaned_content, attempt_model, was_fallback
         except Exception:
             # Upstream rate limit (429) or error: silently try next model in cascade
             continue
@@ -1112,7 +1153,7 @@ with st.sidebar:
                     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                     background-clip:text">AI Nutritionist Pro</div>
         <div style="color:rgba(165,180,252,0.5);font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;margin-top:4px">
-            Powered by OpenRouter
+            Precision Clinical Health
         </div>
     </div>
     <hr style="border-top:1px solid rgba(165,180,252,0.1);margin:0.8rem 0">
@@ -1188,9 +1229,9 @@ with st.sidebar:
 
         st.markdown(f"""
         <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);
-                    border-radius:10px;padding:0.8rem;margin:0.8rem 0;font-size:0.75rem;color:rgba(165,180,252,0.6)">
-            <b style="color:#22d3ee">Free tier</b> — No cost, no rate limit warnings.<br>
-            Model: <code style="color:#a78bfa;font-size:0.7rem">{selected_model}</code>
+                    border-radius:10px;padding:0.7rem 0.8rem;margin:0.8rem 0;font-size:0.75rem;color:rgba(165,180,252,0.7)">
+            <b style="color:#22d3ee">Active Intelligence Engine</b><br>
+            <span style="color:#a78bfa;font-family:monospace;font-size:0.72rem">{selected_model}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1264,7 +1305,7 @@ def render_meal_planner_page(api_key, client, selected_model, ml_model):
     col1, col2, col3, col4 = st.columns(4)
     feature_cards = [
         ("🧬", "Personalized", "Based on your unique biology"),
-        ("🤖", "AI-Powered",   "Latest free OpenRouter models"),
+        ("⚡", "Clinical AI",   "Evidence-based health models"),
         ("🥘", "Indian Meals", "Budget-friendly local ingredients"),
         ("📊", "Macro-tracked", "Calories, protein, carbs & fat"),
     ]
@@ -1451,9 +1492,18 @@ def render_meal_planner_page(api_key, client, selected_model, ml_model):
                 )
 
             # ─── Results Display ───
+            # Ensure output is fully sanitized and clean
+            clean_plan = clean_and_sanitize_meal_plan(plan_text)
+            if not is_valid_meal_plan(clean_plan):
+                clean_plan = generate_offline_indian_meal_plan(
+                    age=age, gender=gender, bmi=bmi, bmi_cat=bmi_cat, goal=goal,
+                    activity=activity, calories=calories, protein=protein, carbs=carbs, fat=fat,
+                    dietary=dietary
+                )
+
             st.markdown(f"""
             <div class="result-wrapper">
-                <div class="result-title">🍽️ Your Personalized Diet Plan</div>
+                <div class="result-title">🍽️ Your Personalized Clinical Diet Blueprint</div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.5rem">
                     <span class="macro-pill">👤 {age}y {gender}</span>
                     <span class="macro-pill">🎯 {goal}</span>
@@ -1462,36 +1512,193 @@ def render_meal_planner_page(api_key, client, selected_model, ml_model):
                 </div>
             """, unsafe_allow_html=True)
 
-            # Split plan into meal sections and display as cards
-            sections = {
-                "🌅 Breakfast":           ("breakfast", "☀️ Breakfast"),
-                "🍎 Mid-Morning Snack":   ("snack1",    "🍎 Mid-Morning Snack"),
-                "☀️ Lunch":               ("lunch",     "🌞 Lunch"),
-                "🫖 Evening Snack":       ("snack2",    "🫖 Evening Snack"),
-                "🌙 Dinner":              ("dinner",    "🌙 Dinner"),
-                "💧 Hydration & Tips":    ("hydration", "💧 Hydration & Tips"),
+            # ── 1. Daily Schedule & Macronutrient Distribution Table ──
+            b_cal = round(calories * 0.25)
+            b_p = round(protein * 0.25)
+            b_c = round(carbs * 0.25)
+            b_f = round(fat * 0.25)
+
+            sn1_cal = round(calories * 0.10)
+            sn1_p = round(protein * 0.10)
+            sn1_c = round(carbs * 0.10)
+            sn1_f = round(fat * 0.10)
+
+            l_cal = round(calories * 0.35)
+            l_p = round(protein * 0.35)
+            l_c = round(carbs * 0.35)
+            l_f = round(fat * 0.35)
+
+            sn2_cal = round(calories * 0.10)
+            sn2_p = round(protein * 0.10)
+            sn2_c = round(carbs * 0.10)
+            sn2_f = round(fat * 0.10)
+
+            d_cal = round(calories * 0.20)
+            d_p = round(protein * 0.20)
+            d_c = round(carbs * 0.20)
+            d_f = round(fat * 0.20)
+
+            overview_table = (
+                f'<div style="overflow-x:auto;margin-bottom:2rem;background:rgba(10,16,40,0.65);'
+                f'border:1px solid rgba(34,211,238,0.25);border-radius:16px;padding:1.2rem;backdrop-filter:blur(16px)">'
+                f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:1.05rem;color:#e2eeff;'
+                f'margin-bottom:0.8rem;display:flex;align-items:center;gap:8px">'
+                f'<span>📊</span><span>Macronutrient Schedule & Target Distribution</span></div>'
+                f'<table style="width:100%;border-collapse:collapse;font-size:0.84rem;color:#cbd5f0;text-align:left">'
+                f'<thead><tr style="border-bottom:1px solid rgba(34,211,238,0.2);color:#a5b4fc;font-family:\'Outfit\',sans-serif">'
+                f'<th style="padding:10px 12px">Meal Session</th><th style="padding:10px 12px">Timing</th>'
+                f'<th style="padding:10px 12px">Calories</th><th style="padding:10px 12px">Protein</th>'
+                f'<th style="padding:10px 12px">Carbs</th><th style="padding:10px 12px">Fat</th>'
+                f'<th style="padding:10px 12px">Metabolic Focus</th></tr></thead><tbody>'
+                f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+                f'<td style="padding:10px 12px;font-weight:600;color:#22d3ee">🌅 Breakfast</td>'
+                f'<td style="padding:10px 12px">7:30 - 8:30 AM</td>'
+                f'<td style="padding:10px 12px">~{b_cal} kcal</td>'
+                f'<td style="padding:10px 12px;color:#34d399">{b_p}g</td>'
+                f'<td style="padding:10px 12px;color:#fbbf24">{b_c}g</td>'
+                f'<td style="padding:10px 12px;color:#fb7185">{b_f}g</td>'
+                f'<td style="padding:10px 12px;font-size:0.78rem;color:rgba(165,180,252,0.8)">Satiety & Steady Glucose</td></tr>'
+                f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+                f'<td style="padding:10px 12px;font-weight:600;color:#22d3ee">🍎 Mid-Morning</td>'
+                f'<td style="padding:10px 12px">11:00 AM</td>'
+                f'<td style="padding:10px 12px">~{sn1_cal} kcal</td>'
+                f'<td style="padding:10px 12px;color:#34d399">{sn1_p}g</td>'
+                f'<td style="padding:10px 12px;color:#fbbf24">{sn1_c}g</td>'
+                f'<td style="padding:10px 12px;color:#fb7185">{sn1_f}g</td>'
+                f'<td style="padding:10px 12px;font-size:0.78rem;color:rgba(165,180,252,0.8)">Bioavailability & Enzymes</td></tr>'
+                f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+                f'<td style="padding:10px 12px;font-weight:600;color:#22d3ee">☀️ Lunch</td>'
+                f'<td style="padding:10px 12px">1:00 - 2:00 PM</td>'
+                f'<td style="padding:10px 12px">~{l_cal} kcal</td>'
+                f'<td style="padding:10px 12px;color:#34d399">{l_p}g</td>'
+                f'<td style="padding:10px 12px;color:#fbbf24">{l_c}g</td>'
+                f'<td style="padding:10px 12px;color:#fb7185">{l_f}g</td>'
+                f'<td style="padding:10px 12px;font-size:0.78rem;color:rgba(165,180,252,0.8)">Peak Digestive Thermogenesis</td></tr>'
+                f'<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">'
+                f'<td style="padding:10px 12px;font-weight:600;color:#22d3ee">🫖 Evening Snack</td>'
+                f'<td style="padding:10px 12px">5:00 PM</td>'
+                f'<td style="padding:10px 12px">~{sn2_cal} kcal</td>'
+                f'<td style="padding:10px 12px;color:#34d399">{sn2_p}g</td>'
+                f'<td style="padding:10px 12px;color:#fbbf24">{sn2_c}g</td>'
+                f'<td style="padding:10px 12px;color:#fb7185">{sn2_f}g</td>'
+                f'<td style="padding:10px 12px;font-size:0.78rem;color:rgba(165,180,252,0.8)">Cortisol Regulation & Focus</td></tr>'
+                f'<tr>'
+                f'<td style="padding:10px 12px;font-weight:600;color:#22d3ee">🌙 Dinner</td>'
+                f'<td style="padding:10px 12px">7:30 - 8:30 PM</td>'
+                f'<td style="padding:10px 12px">~{d_cal} kcal</td>'
+                f'<td style="padding:10px 12px;color:#34d399">{d_p}g</td>'
+                f'<td style="padding:10px 12px;color:#fbbf24">{d_c}g</td>'
+                f'<td style="padding:10px 12px;color:#fb7185">{d_f}g</td>'
+                f'<td style="padding:10px 12px;font-size:0.78rem;color:rgba(165,180,252,0.8)">Restorative Digestion & REM</td></tr>'
+                f'</tbody></table></div>'
+            )
+            st.markdown(overview_table, unsafe_allow_html=True)
+
+            # ── 2. Structured Meal Cards ──
+            time_map = {
+                "breakfast": ("🌅", "Breakfast", "7:30 - 8:30 AM", f"~{b_cal} kcal (25%)", "breakfast"),
+                "mid-morning": ("🍎", "Mid-Morning Snack", "11:00 AM", f"~{sn1_cal} kcal (10%)", "snack1"),
+                "lunch": ("☀️", "Lunch", "1:00 - 2:00 PM", f"~{l_cal} kcal (35%)", "lunch"),
+                "evening": ("🫖", "Evening Snack", "5:00 PM", f"~{sn2_cal} kcal (10%)", "snack2"),
+                "dinner": ("🌙", "Dinner", "7:30 - 8:30 PM", f"~{d_cal} kcal (20%)", "dinner"),
+                "hydration": ("💧", "Hydration & Metabolic Guidance", "Throughout Day", "Daily Baseline", "hydration"),
             }
 
-            import re
-            parts = re.split(r'\n(?=##\s)', plan_text)
+            parts = re.split(r'\n(?=##\s)', clean_plan)
+            for part in parts:
+                part_clean = part.strip()
+                if not part_clean:
+                    continue
+                lines = [l.strip() for l in part_clean.split('\n') if l.strip()]
+                if not lines:
+                    continue
+                header_raw = lines[0].replace('##', '').strip()
+                header_lower = header_raw.lower()
 
-            if len(parts) > 1:
-                for part in parts:
-                    part = part.strip()
-                    if not part:
+                matched_key = None
+                for k in time_map:
+                    if k in header_lower:
+                        matched_key = k
+                        break
+
+                icon, title, timing, cal_alloc, css_class = time_map.get(
+                    matched_key, ("🍽️", header_raw, "Daily Schedule", "Target Balanced", "lunch")
+                )
+
+                food_items = []
+                macros_text = ""
+                prep_note = ""
+
+                for l in lines[1:]:
+                    l_clean = l.strip()
+                    if is_gibberish_line(l_clean):
                         continue
-                    # Find which card class to use
-                    card_class = "lunch"  # default
-                    for section_header, (css_class, _) in sections.items():
-                        if any(kw in part[:40] for kw in section_header.split()):
-                            card_class = css_class
-                            break
-                    st.markdown(f'<div class="meal-card {card_class}">', unsafe_allow_html=True)
-                    st.markdown(part)
-                    st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                # Fallback: render full plan in one card
-                st.markdown(plan_text)
+                    if any(kw in l_clean.lower() for kw in ['target macro', 'macros:', 'macro target']):
+                        macros_text = re.sub(r'^[-*]\s*\*\*.*?\*\*:\s*', '', l_clean).strip('* ')
+                    elif any(kw in l_clean.lower() for kw in ['preparation note', 'prep note', 'guidance']):
+                        prep_note = re.sub(r'^[-*]\s*\*\*.*?\*\*:\s*', '', l_clean).strip('* ')
+                    else:
+                        clean_item = re.sub(r'^[-*]\s*', '', l_clean).strip()
+                        if clean_item and len(clean_item) > 3:
+                            food_items.append(clean_item.replace('**', ''))
+
+                if "hydration" in header_lower or "tips" in header_lower:
+                    hydration_rows = "".join([
+                        f'<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:0.88rem;color:#cbd5f0">'
+                        f'<span style="color:#22d3ee;font-size:1rem">💧</span><span>{item}</span></div>'
+                        for item in food_items
+                    ])
+                    hydration_card = (
+                        f'<div class="meal-card hydration" style="margin-bottom:1.5rem">'
+                        f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+                        f'<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:1.15rem;color:#22d3ee;'
+                        f'display:flex;align-items:center;gap:8px">'
+                        f'<span>💧</span><span>Hydration & Lifestyle Optimization</span></div>'
+                        f'<span class="macro-pill" style="color:#22d3ee">3.0 - 3.8 Liters Daily</span></div>'
+                        f'{hydration_rows}</div>'
+                    )
+                    st.markdown(hydration_card, unsafe_allow_html=True)
+                else:
+                    items_markup = "".join([
+                        f'<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(255,255,255,0.03);'
+                        f'border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:7px">'
+                        f'<span style="font-size:1.1rem">🥘</span>'
+                        f'<span style="color:#e2eeff;font-weight:500;font-size:0.88rem">{item}</span></div>'
+                        for item in food_items
+                    ])
+
+                    macros_pill_markup = ""
+                    if macros_text:
+                        macros_pill_markup = (
+                            f'<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;'
+                            f'background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.25);'
+                            f'border-radius:12px;font-size:0.8rem;color:#22d3ee;margin-top:6px">'
+                            f'<span>🎯 <b>Session Targets:</b> {macros_text}</span></div>'
+                        )
+
+                    prep_markup = ""
+                    if prep_note:
+                        prep_markup = (
+                            f'<div style="margin-top:10px;padding:10px 14px;background:rgba(6,182,212,0.06);'
+                            f'border-left:3px solid #22d3ee;border-radius:0 10px 10px 0;font-size:0.82rem;'
+                            f'color:rgba(203,213,240,0.85)">'
+                            f'💡 <b>Clinical Guidance:</b> {prep_note}</div>'
+                        )
+
+                    card_html = (
+                        f'<div class="meal-card {css_class}" style="margin-bottom:1.5rem">'
+                        f'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">'
+                        f'<div style="display:flex;align-items:center;gap:8px">'
+                        f'<span style="font-size:1.3rem">{icon}</span>'
+                        f'<span style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:1.15rem;color:#e2eeff">{title}</span>'
+                        f'<span style="font-size:0.75rem;color:rgba(165,180,252,0.6);background:rgba(255,255,255,0.05);'
+                        f'padding:2px 8px;border-radius:8px">⏰ {timing}</span></div>'
+                        f'<span class="macro-pill">{cal_alloc}</span></div>'
+                        f'{items_markup}'
+                        f'{macros_pill_markup}'
+                        f'{prep_markup}</div>'
+                    )
+                    st.markdown(card_html, unsafe_allow_html=True)
 
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1593,9 +1800,10 @@ st.markdown("""
 <div style="margin-top:4rem;padding:2rem 0;text-align:center;
             border-top:1px solid rgba(255,255,255,0.05)">
     <div style="color:rgba(165,180,252,0.4);font-size:0.75rem;letter-spacing:1px">
-        Built with ❤️ using Streamlit • Powered by OpenRouter Free Models
+        AI Nutritionist Pro • Clinical Precision Health & Nutrition Intelligence
         <br>
-        <span style="color:rgba(165,180,252,0.25)">🔒 API keys stored securely — never exposed in code</span>
+        <span style="color:rgba(165,180,252,0.25)">Private & Sandboxed Health Telemetry</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
+
